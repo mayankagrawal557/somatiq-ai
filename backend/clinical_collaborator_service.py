@@ -32,10 +32,12 @@ PII_PATTERNS = [
     # UHID / MRN / Patient Hospital Identifiers
     (re.compile(r'\b(?:UHID|MRN|PID|IPD|OPD|SYN)[:\s#-]*[A-Z0-9\-]{4,15}\b', re.IGNORECASE), '[REDACTED_UHID]'),
     # Salutations followed by names (e.g. Mr. John Doe, Mrs. Anita Sharma)
-    (re.compile(r'\b(?:Mr\.|Mrs\.|Ms\.|Miss|Dr\.|Master|Shri|Smt\.|Baby(?:\s+of)?)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\b'), '[REDACTED_PATIENT_NAME]')
+    (re.compile(r'\b(?:Mr\.|Mrs\.|Ms\.|Miss|Dr\.|Master|Shri|Smt\.|Baby(?:\s+of)?)\s+([A-Za-z]+(?:\s+[A-Za-z]+){1,3})\b', re.IGNORECASE), '[REDACTED_PATIENT_NAME]'),
+    # Labeled Patient Name (e.g. Patient Name: Rajesh Sharma, Pt Name: Anita Roy, Name: Rajesh Sharma)
+    (re.compile(r'\b(?:Patient(?:\s+Name)?|Pt(?:\s+Name)?|Name)\s*[:\-]\s*([A-Za-z]+(?:\s+[A-Za-z]+){1,3})\b', re.IGNORECASE), 'Patient: [REDACTED_PATIENT_NAME]')
 ]
 
-def scrub_pii(text: str) -> str:
+def scrub_pii(text: str, patient_name: Optional[str] = None, patient_phone: Optional[str] = None) -> str:
     """
     Redacts all direct patient identifiers (Names, Phones, Aadhaar, Emails, UHIDs)
     before sending reports or queries to external LLM providers.
@@ -43,6 +45,21 @@ def scrub_pii(text: str) -> str:
     if not text:
         return ""
     scrubbed = text
+
+    # Explicit patient name scrubbing if passed from metadata
+    if patient_name and patient_name.strip():
+        name_clean = patient_name.strip()
+        scrubbed = re.sub(re.escape(name_clean), '[REDACTED_PATIENT_NAME]', scrubbed, flags=re.IGNORECASE)
+        for part in name_clean.split():
+            if len(part) >= 3 and part.lower() not in ["patient", "name", "male", "female", "adult", "years", "year"]:
+                scrubbed = re.sub(rf'\b{re.escape(part)}\b', '[REDACTED_PATIENT_NAME]', scrubbed, flags=re.IGNORECASE)
+
+    # Explicit phone number scrubbing if passed from metadata
+    if patient_phone and patient_phone.strip():
+        phone_clean = patient_phone.strip()
+        if len(phone_clean) >= 6:
+            scrubbed = re.sub(re.escape(phone_clean), '[REDACTED_PHONE]', scrubbed)
+
     for pattern, replacement in PII_PATTERNS:
         scrubbed = pattern.sub(replacement, scrubbed)
     return scrubbed
@@ -59,6 +76,8 @@ class CollaboratorRequest(BaseModel):
     clinical_history: str = ""
     findings_html: str = ""
     custom_query: Optional[str] = None
+    patient_name: Optional[str] = None
+    patient_phone: Optional[str] = None
 
 
 class CollaboratorItem(BaseModel):
@@ -97,24 +116,49 @@ def verify_clinical_safety(source_findings: str, ai_output_html: Optional[str]) 
     # a) Numeric Measurement Check
     ai_measurements = MEASUREMENT_PATTERN.findall(clean_ai)
     for num_str in ai_measurements:
-        # Check if the number itself exists in source text
         if num_str not in clean_source:
             logger.warning(f"Safety validator blocked hallucinated measurement: '{num_str}' not in source findings.")
             return False
 
-    # b) Laterality Inversion Check
+    # b) Laterality Inversion Check (Global & Pathology-Specific)
     has_source_right = "right" in clean_source
     has_source_left = "left" in clean_source
     has_ai_right = "right" in clean_ai
     has_ai_left = "left" in clean_ai
 
-    if has_source_right and not has_source_left and has_ai_left and not has_ai_right:
+    if has_source_right and not has_source_left and has_ai_left:
         logger.warning("Safety validator blocked laterality inversion: 'left' introduced when source was only 'right'.")
         return False
 
-    if has_source_left and not has_source_right and has_ai_right and not has_ai_left:
+    if has_source_left and not has_source_right and has_ai_right:
         logger.warning("Safety validator blocked laterality inversion: 'right' introduced when source was only 'left'.")
         return False
+
+    # Pathology-specific laterality cross-check (detects laterality swap even when both sides are described)
+    pathologies = ["calculus", "stone", "mass", "nodule", "lesion", "cyst", "fracture", "effusion", "thromb", "infarct", "stenosis"]
+    for path in pathologies:
+        if path in clean_ai:
+            ai_has_right_path = bool(re.search(rf'\bright\b[^\.\;]*\b{path}\b|\b{path}\b[^\.\;]*\bright\b', clean_ai))
+            ai_has_left_path = bool(re.search(rf'\bleft\b[^\.\;]*\b{path}\b|\b{path}\b[^\.\;]*\bleft\b', clean_ai))
+
+            source_sentences = re.split(r'[\.\;\n]', clean_source)
+            source_has_right_affirmative = False
+            source_has_left_affirmative = False
+            for s in source_sentences:
+                if path in s:
+                    is_neg = bool(re.search(rf'\b(no|without|absent|free of|negative for)\s+[a-z\s]*\b{path}\b', s))
+                    if not is_neg:
+                        if "right" in s:
+                            source_has_right_affirmative = True
+                        if "left" in s:
+                            source_has_left_affirmative = True
+
+            if ai_has_left_path and not source_has_left_affirmative and source_has_right_affirmative:
+                logger.warning(f"Safety validator blocked pathology laterality inversion: '{path}' placed on 'left' when source only had '{path}' on 'right'.")
+                return False
+            if ai_has_right_path and not source_has_right_affirmative and source_has_left_affirmative:
+                logger.warning(f"Safety validator blocked pathology laterality inversion: '{path}' placed on 'right' when source only had '{path}' on 'left'.")
+                return False
 
     return True
 
@@ -158,8 +202,9 @@ class ClinicalCollaboratorService:
         failover resilience, and deterministic clinical safety validation.
         """
         # Step 1: PII Scrubbing
-        scrubbed_history = scrub_pii(req.clinical_history)
-        scrubbed_findings = scrub_pii(req.findings_html)
+        scrubbed_history = scrub_pii(req.clinical_history, req.patient_name, req.patient_phone)
+        scrubbed_findings = scrub_pii(req.findings_html, req.patient_name, req.patient_phone)
+        scrubbed_query = scrub_pii(req.custom_query or "", req.patient_name, req.patient_phone) if req.custom_query else None
         clean_findings_text = re.sub(r'<[^>]+>', ' ', scrubbed_findings).strip()
 
         # Step 2: Build Clinical Prompt
@@ -170,7 +215,7 @@ class ClinicalCollaboratorService:
             age_gender=req.age_gender,
             clinical_history=scrubbed_history,
             findings_text=clean_findings_text,
-            custom_query=req.custom_query
+            custom_query=scrubbed_query
         )
 
         # Step 3: Engine 1 — Gemini 2.5 Flash (8s timeout)
@@ -230,10 +275,14 @@ class ClinicalCollaboratorService:
             "STRICT CLINICAL RULES:\n"
             "1. ZERO HALLUCINATION: Rely strictly on the findings provided. NEVER invent lesions, measurements, or SUVmax.\n"
             "2. STANDARD REPORTING CRITERIA: Cite standard international guidelines where applicable "
-            "(e.g., ACR BI-RADS, ACR TI-RADS, PI-RADS v2.1, Deauville 5-PS for PET-CT, Fleischner 2017, RECIST 1.1, Lugano Classification).\n"
-            "3. TRIAGE STATUS: Categorize as 'ROUTINE', 'ATTENTION' (abnormal finding needing workup), or 'CRITICAL_PANIC' (life-threatening).\n"
-            "4. For 'critical_alert': Generate a documented critical communication log sentence: 'Critical finding communicated to referring clinician Dr. [___] on [Date/Time].'\n"
-            "5. RETURN STRICT JSON matching this schema:\n"
+            "(e.g., ACR BI-RADS, ACR TI-RADS, PI-RADS v2.1, Deauville 5-PS for PET-CT, Fleischner 2017, Tokyo TG18, RECIST 1.1, Lugano Classification, ACR Appropriateness Criteria).\n"
+            "3. TRIAGE STATUS: Categorize as 'ROUTINE', 'ATTENTION' (abnormal finding needing workup or missing clinical indication), or 'CRITICAL_PANIC' (life-threatening emergency).\n"
+            "4. For 'history_check': Rigorously cross-examine the patient's CLINICAL HISTORY / INDICATION against SOURCE FINDINGS. "
+            "If the clinical history asks to rule out a pathology (such as acute appendicitis, right iliac fossa pathology, cholecystitis, or renal colic) "
+            "and that organ or anatomical region is completely unmentioned in the findings, you MUST prominently flag this in an item with title "
+            "'Unaddressed Clinical Indication: Acute Appendicitis / Right Iliac Fossa' and recommend targeted evaluation under ACR Appropriateness Criteria.\n"
+            "5. For 'critical_alert': Generate a documented critical communication log sentence: 'Critical finding communicated to referring clinician Dr. [___] on [Date/Time].'\n"
+            "6. RETURN STRICT JSON matching this schema:\n"
             "{\n"
             '  "action": "string",\n'
             '  "triage_status": "ROUTINE" | "ATTENTION" | "CRITICAL_PANIC",\n'
@@ -407,7 +456,19 @@ class ClinicalCollaboratorService:
             triage = "ATTENTION" if clinical_history else "ROUTINE"
 
             hist_clean = clinical_history.lower() if clinical_history else ""
-            if "pain" in hist_clean and "right" in hist_clean:
+
+            # Check for acute appendicitis / right iliac fossa pathology
+            if ("appendic" in hist_clean or "iliac fossa" in hist_clean or "rif" in hist_clean or "rlq" in hist_clean):
+                has_appendix = ("appendix" in lower_find or "appendicitis" in lower_find or "iliac fossa" in lower_find or "rif" in lower_find or "rlq" in lower_find)
+                if not has_appendix:
+                    triage = "ATTENTION"
+                    items.insert(0, CollaboratorItem(
+                        title="Unaddressed Clinical Indication: Acute Appendicitis / Right Iliac Fossa Pathology",
+                        detail="The clinical history specifically asks to rule out acute appendicitis / right iliac fossa pathology, but the appendix and right lower quadrant structures are not described in the current findings. Recommendation: Evaluate and explicitly document the right iliac fossa, appendiceal caliber, compressibility, pericecal fluid, and mesenteric adenopathy.",
+                        confidence_or_guideline="ACR Appropriateness Criteria (Right Lower Quadrant Pain - Suspected Appendicitis)"
+                    ))
+
+            if "pain" in hist_clean and "right" in hist_clean and not any("appendic" in item.title.lower() for item in items):
                 addressed = ("calculus" in lower_find or "chole" in lower_find or "gall" in lower_find or "kidney" in lower_find)
                 items.append(CollaboratorItem(
                     title="Right Flank / RUQ Pain Evaluation",
@@ -415,7 +476,7 @@ class ClinicalCollaboratorService:
                     confidence_or_guideline="Clinical Indication Correlation"
                 ))
             if "fever" in hist_clean or "infection" in hist_clean:
-                has_inflam = ("thickening" in lower_find or "fluid" in lower_find or "consolidation" in lower_find)
+                has_inflam = ("thickening" in lower_find or "fluid" in lower_find or "consolidation" in lower_find or "inflam" in lower_find)
                 items.append(CollaboratorItem(
                     title="Infectious / Inflammatory Focus",
                     detail="Secondary inflammatory signs noted." if has_inflam else "No acute inflammatory collection or focus described.",

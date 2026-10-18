@@ -80,6 +80,20 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePendingEditsCount();
   });
 
+  // Clinical history two-way synchronization
+  const clinicalHistInput = document.getElementById('clinicalHistory');
+  const collabHistInput = document.getElementById('collabClinicalHistoryInput');
+  if (clinicalHistInput) {
+    clinicalHistInput.addEventListener('input', () => {
+      if (collabHistInput) collabHistInput.value = clinicalHistInput.value;
+    });
+  }
+  if (collabHistInput) {
+    collabHistInput.addEventListener('input', () => {
+      if (clinicalHistInput) clinicalHistInput.value = collabHistInput.value;
+    });
+  }
+
   // Global & Editor Keyboard Shortcuts (Alt+S, Alt+C, Ctrl+Shift+C, Ctrl+Enter, Tab)
   window.addEventListener('keydown', (e) => {
     // 1. One-Shot Smart AI Merge: Alt + S
@@ -518,6 +532,11 @@ function onTemplateSelect() {
 
   patientModality.value = `${t.modality} (${t.body_part})`;
 
+  const clinicalHistInput = document.getElementById('clinicalHistory');
+  const collabHistInput = document.getElementById('collabClinicalHistoryInput');
+  if (clinicalHistInput) clinicalHistInput.value = t.indication_default || '';
+  if (collabHistInput) collabHistInput.value = t.indication_default || '';
+
   // Header metadata block if present (e.g. Radiopharmaceutical, Injected Dose, Uptake time)
   let headerHtml = '';
   if (t.header_fields && t.header_fields.length > 0) {
@@ -712,12 +731,14 @@ async function copyCleanReportForRIS() {
     el.removeAttribute('class');
     el.removeAttribute('id');
     el.removeAttribute('contenteditable');
+    el.removeAttribute('style');
     if (el.tagName === 'STRONG' || el.tagName === 'B') {
       el.style.fontWeight = 'bold';
       el.style.color = '#000000';
     } else if (el.tagName === 'P' || el.tagName === 'DIV') {
       el.style.margin = '0 0 6px 0';
       el.style.lineHeight = '1.4';
+      el.style.color = '#000000';
     }
   });
 
@@ -737,7 +758,7 @@ async function copyCleanReportForRIS() {
         'text/plain': blobText
       });
       await navigator.clipboard.write([clipboardItem]);
-      showToast('📋 Clean report copied for RIS / PACS / Word (Universal HTML & Text)!');
+      showToast('📋 Clean Report Copied for RIS / PACS / Word!');
       return;
     }
   } catch (err) {
@@ -1723,13 +1744,21 @@ async function runClinicalCollaborator(action, customQuery = null) {
   state.collaboratorLoading = true;
 
   // Extract clinical context from DOM & editor
-  const editorText = richEditor.innerText || '';
+  const collabHistInput = document.getElementById('collabClinicalHistoryInput');
+  const clinicalHistInput = document.getElementById('clinicalHistory');
   let clinicalHistory = '';
-  const historyMatch = editorText.match(/CLINICAL INDICATION\s*:\s*([\s\S]*?)(?=\bFINDINGS|\bTECHNIQUE|\bPROCEDURE|\bIMPRESSION|$)/i);
-  if (historyMatch && historyMatch[1].trim()) {
-    clinicalHistory = historyMatch[1].trim();
+  if (collabHistInput && collabHistInput.value.trim()) {
+    clinicalHistory = collabHistInput.value.trim();
+  } else if (clinicalHistInput && clinicalHistInput.value.trim()) {
+    clinicalHistory = clinicalHistInput.value.trim();
   } else {
-    clinicalHistory = 'Routine diagnostic evaluation / Not specified';
+    const editorText = richEditor.innerText || '';
+    const historyMatch = editorText.match(/CLINICAL INDICATION\s*:\s*([\s\S]*?)(?=\bFINDINGS|\bTECHNIQUE|\bPROCEDURE|\bIMPRESSION|$)/i);
+    if (historyMatch && historyMatch[1].trim()) {
+      clinicalHistory = historyMatch[1].trim();
+    } else {
+      clinicalHistory = 'Routine diagnostic evaluation / Not specified';
+    }
   }
 
   const payload = {
@@ -1739,7 +1768,9 @@ async function runClinicalCollaborator(action, customQuery = null) {
     age_gender: patientAgeSex ? patientAgeSex.value : 'Adult',
     clinical_history: clinicalHistory,
     findings_html: richEditor.innerHTML || '',
-    custom_query: customQuery
+    custom_query: customQuery,
+    patient_name: patientName ? patientName.value : '',
+    patient_phone: patientUHID ? patientUHID.value : ''
   };
 
   try {
@@ -1880,7 +1911,7 @@ function renderCollaboratorResults(data) {
             <span>⚡</span> Suggested Structured Impression
           </span>
           <button id="btnInsertCollabImpression" onclick="insertCollaboratorImpression()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-md shadow-purple-600/30 transition active:scale-95" title="Insert directly into editor under IMPRESSION (Highlighted for clinician sign-off)">
-            <span>📥</span> Insert into Report
+            <span>📥</span> Insert into Report Impression
           </button>
         </div>
         <div class="bg-pacs-950 p-3 rounded-lg border border-pacs-800/90 text-xs text-slate-200 leading-relaxed font-sans shadow-inner">
