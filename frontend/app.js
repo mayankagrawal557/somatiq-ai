@@ -25,7 +25,16 @@ const state = {
   reconnectTimer: null,
   heartbeatInterval: null,
   offlineBuffer: [],
-  sttMode: 'dual'
+  sttMode: 'dual',
+  patientSummaries: { en: '', hinglish: '' },
+  currentSummaryLang: 'en',
+  letterheadConfig: {
+    preprinted_letterhead: false,
+    top_margin_mm: 45,
+    bottom_margin_mm: 30,
+    include_summary_page2: false
+  },
+  currentEditFocusIndex: -1
 };
 
 // DOM References
@@ -61,9 +70,43 @@ document.addEventListener('DOMContentLoaded', () => {
   loadTemplates();
   initCanvasWaveform();
   checkServerHealth();
+  initLetterheadSettings();
   
-  // Word count tracker
-  richEditor.addEventListener('input', updateWordCount);
+  // Word count & AI diff highlight tracker
+  richEditor.addEventListener('input', () => {
+    updateWordCount();
+    updatePendingEditsCount();
+  });
+
+  // Global & Editor Keyboard Shortcuts (Alt+S, Ctrl+Enter, Tab)
+  window.addEventListener('keydown', (e) => {
+    // 1. One-Shot Smart AI Merge: Alt + S
+    if (e.altKey && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      triggerSmartAIMerge();
+      return;
+    }
+
+    // 2. Accept All AI Edits: Ctrl + Enter
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      const marks = richEditor.querySelectorAll('mark');
+      if (marks.length > 0) {
+        e.preventDefault();
+        acceptAllEdits();
+        return;
+      }
+    }
+
+    // 3. Next AI Edit Navigation: Tab
+    if (e.key === 'Tab' && !e.shiftKey) {
+      const marks = richEditor.querySelectorAll('mark');
+      if (marks.length > 0 && (document.activeElement === richEditor || richEditor.contains(document.activeElement))) {
+        e.preventDefault();
+        focusNextEdit();
+        return;
+      }
+    }
+  });
 
   // STT Engine Selector
   if (selectSttEngine) {
@@ -1120,5 +1163,397 @@ function filterHandbookTerms() {
   const input = document.getElementById('handbookSearch');
   if (input) {
     renderHandbookTerms(input.value);
+  }
+}
+
+// =========================================================================
+// UPGRADE 2: "One-Shot" Smart AI Structuring Mode (Alt + S)
+// =========================================================================
+async function triggerSmartAIMerge() {
+  const rawDictation = richEditor.innerText.trim();
+  if (!rawDictation) {
+    showToast('Please dictate or type findings first before running Smart AI Merge.');
+    return;
+  }
+
+  const btnLeft = document.getElementById('btnSmartMerge');
+  const btnToolbar = document.getElementById('btnSmartMergeToolbar');
+  const spinnerLeft = document.getElementById('smartMergeSpinner');
+  const spinnerToolbar = document.getElementById('smartMergeToolbarSpinner');
+  const iconLeft = document.getElementById('smartMergeIcon');
+
+  // Activate loading spinners
+  if (spinnerLeft) spinnerLeft.classList.remove('hidden');
+  if (spinnerToolbar) spinnerToolbar.classList.remove('hidden');
+  if (iconLeft) iconLeft.classList.add('hidden');
+  if (btnLeft) btnLeft.disabled = true;
+  if (btnToolbar) btnToolbar.disabled = true;
+
+  showToast('✨ Surgically merging dictation into template (Alt+S)...');
+
+  try {
+    const payload = {
+      template_key: selectTemplate ? selectTemplate.value : 'ct_brain',
+      current_template_html: richEditor.innerHTML,
+      raw_dictation: rawDictation,
+      patient_age_gender: patientAgeSex ? patientAgeSex.value : '45Y / M',
+      modality: patientModality ? patientModality.value : 'CT'
+    };
+
+    const res = await fetch('/api/smart-structure', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || 'Smart AI merge failed.');
+      return;
+    }
+
+    const data = await res.json();
+    if (data.merged_report_html) {
+      richEditor.innerHTML = data.merged_report_html;
+    }
+
+    // Patient summary storage & presentation
+    state.patientSummaries.en = data.patient_summary_en || '';
+    state.patientSummaries.hinglish = data.patient_summary_hinglish || '';
+    state.currentSummaryLang = 'en';
+
+    const summaryContainer = document.getElementById('patientSummaryContainer');
+    const summaryText = document.getElementById('patientSummaryText');
+    const printSummaryText = document.getElementById('printPage2SummaryText');
+
+    if (summaryContainer && summaryText && data.patient_summary_en) {
+      summaryText.textContent = data.patient_summary_en;
+      summaryContainer.classList.remove('hidden');
+      if (printSummaryText) {
+        printSummaryText.textContent = data.patient_summary_en;
+      }
+    }
+
+    updateWordCount();
+    updatePendingEditsCount();
+
+    if (data.gender_pruned && data.gender_pruned.length > 0) {
+      showToast(`✨ Smart Merge complete! Biological pruning applied for: ${data.gender_pruned.join(', ')}.`);
+    } else {
+      showToast(`✨ Smart Merge complete! Verified with ${data.engine || 'Gemini 2.5 Flash'}.`);
+    }
+
+  } catch (err) {
+    console.error('Smart AI Merge failed:', err);
+    showToast('Error during Smart AI merge.');
+  } finally {
+    if (spinnerLeft) spinnerLeft.classList.add('hidden');
+    if (spinnerToolbar) spinnerToolbar.classList.add('hidden');
+    if (iconLeft) iconLeft.classList.remove('hidden');
+    if (btnLeft) btnLeft.disabled = false;
+    if (btnToolbar) btnToolbar.disabled = false;
+  }
+}
+
+function togglePatientSummaryCard() {
+  const body = document.getElementById('patientSummaryBody');
+  const icon = document.getElementById('summaryToggleIcon');
+  if (body) {
+    body.classList.toggle('hidden');
+    if (icon) {
+      icon.style.transform = body.classList.contains('hidden') ? 'rotate(-90deg)' : 'rotate(0deg)';
+    }
+  }
+}
+
+function switchPatientSummaryLang(lang) {
+  state.currentSummaryLang = lang;
+  const btnEn = document.getElementById('btnLangEn');
+  const btnHinglish = document.getElementById('btnLangHinglish');
+  const summaryText = document.getElementById('patientSummaryText');
+
+  if (lang === 'hinglish') {
+    if (btnHinglish) btnHinglish.className = 'px-2 py-0.5 rounded bg-emerald-600 text-white font-bold transition';
+    if (btnEn) btnEn.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition';
+    if (summaryText) summaryText.textContent = state.patientSummaries.hinglish || state.patientSummaries.en;
+  } else {
+    if (btnEn) btnEn.className = 'px-2 py-0.5 rounded bg-emerald-600 text-white font-bold transition';
+    if (btnHinglish) btnHinglish.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition';
+    if (summaryText) summaryText.textContent = state.patientSummaries.en;
+  }
+}
+
+function copyPatientSummary(e) {
+  if (e) e.stopPropagation();
+  const summaryText = document.getElementById('patientSummaryText');
+  if (!summaryText) return;
+  navigator.clipboard.writeText(summaryText.textContent).then(() => {
+    showToast('Patient summary copied to clipboard!');
+  }).catch(() => {
+    showToast('Failed to copy patient summary.');
+  });
+}
+
+// =========================================================================
+// UPGRADE 3: Visual AI Diff Highlighting & Keyboard Sign-Off Workflow
+// =========================================================================
+function updatePendingEditsCount() {
+  const marks = richEditor.querySelectorAll('mark.ai-diff-highlight, mark.phonetic-diff-highlight, mark');
+  const count = marks.length;
+  const countBadge = document.getElementById('aiEditsPendingBadge');
+  const countSpan = document.getElementById('pendingEditsCount');
+  const btnNext = document.getElementById('btnNextEdit');
+  const btnAccept = document.getElementById('btnAcceptAllEdits');
+  const verifiedBadge = document.getElementById('clinicianVerifiedBadge');
+  const container = document.getElementById('safetyFlagsContainer');
+
+  if (count > 0) {
+    if (container) container.classList.remove('hidden');
+    if (countBadge) countBadge.classList.remove('hidden');
+    if (countSpan) countSpan.textContent = count;
+    if (btnNext) btnNext.classList.remove('hidden');
+    if (btnAccept) btnAccept.classList.remove('hidden');
+    if (verifiedBadge) verifiedBadge.classList.add('hidden');
+  } else {
+    if (countBadge) countBadge.classList.add('hidden');
+    if (btnNext) btnNext.classList.add('hidden');
+    if (btnAccept) btnAccept.classList.add('hidden');
+    // If editor has content and no marks remain, show verified
+    if (richEditor.innerText.trim().length > 50 && verifiedBadge) {
+      verifiedBadge.classList.remove('hidden');
+    }
+  }
+}
+
+function focusNextEdit() {
+  const marks = richEditor.querySelectorAll('mark.ai-diff-highlight, mark.phonetic-diff-highlight, mark');
+  if (!marks || marks.length === 0) {
+    showToast('No highlighted AI edits remaining.');
+    return;
+  }
+
+  // Remove previous focus highlight
+  marks.forEach(m => m.classList.remove('current-focus'));
+
+  state.currentEditFocusIndex = (state.currentEditFocusIndex + 1) % marks.length;
+  const current = marks[state.currentEditFocusIndex];
+  current.classList.add('current-focus');
+  current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Move selection / caret inside current mark
+  try {
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(current);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } catch (e) {
+    current.focus();
+  }
+
+  showToast(`Navigated to AI edit ${state.currentEditFocusIndex + 1} of ${marks.length}`);
+}
+
+function acceptAllEdits() {
+  const marks = richEditor.querySelectorAll('mark.ai-diff-highlight, mark.phonetic-diff-highlight, mark');
+  const count = marks.length;
+  if (count === 0) {
+    showToast('No pending AI edits to accept.');
+    return;
+  }
+
+  // Cleanly unwrap all <mark> tags preserving inner text
+  marks.forEach(mark => {
+    mark.replaceWith(...mark.childNodes);
+  });
+
+  state.currentEditFocusIndex = -1;
+  updatePendingEditsCount();
+
+  const verifiedBadge = document.getElementById('clinicianVerifiedBadge');
+  if (verifiedBadge) verifiedBadge.classList.remove('hidden');
+
+  showToast(`✅ Accepted and verified ${count} AI edits (Verified by Clinician).`);
+}
+
+function handlePrintRequest() {
+  const marks = richEditor.querySelectorAll('mark.ai-diff-highlight, mark.phonetic-diff-highlight, mark');
+  if (marks && marks.length > 0) {
+    const modal = document.getElementById('unverifiedEditsModal');
+    const modalCount = document.getElementById('modalUnverifiedCount');
+    if (modalCount) modalCount.textContent = marks.length;
+    if (modal) modal.classList.remove('hidden');
+  } else {
+    executePrint();
+  }
+}
+
+function closeUnverifiedEditsModal() {
+  const modal = document.getElementById('unverifiedEditsModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function acceptEditsAndPrint() {
+  acceptAllEdits();
+  closeUnverifiedEditsModal();
+  setTimeout(() => {
+    executePrint();
+  }, 100);
+}
+
+function executePrint() {
+  applyLetterheadPrintStyles();
+  window.print();
+}
+
+// =========================================================================
+// UPGRADE 4: Hospital Pre-Printed Letterhead Calibration Engine
+// =========================================================================
+async function initLetterheadSettings() {
+  // Load local settings first
+  try {
+    const stored = localStorage.getItem('somatiq_letterhead_settings');
+    if (stored) {
+      state.letterheadConfig = Object.assign(state.letterheadConfig, JSON.parse(stored));
+    }
+  } catch (e) {
+    console.warn('LocalStorage letterhead load error:', e);
+  }
+
+  // Sync with backend API
+  try {
+    const res = await fetch('/api/letterhead-settings');
+    if (res.ok) {
+      const data = await res.json();
+      if (data) {
+        state.letterheadConfig.preprinted_letterhead = Boolean(data.preprinted_letterhead);
+        state.letterheadConfig.top_margin_mm = Number(data.top_margin_mm) || 45;
+        state.letterheadConfig.bottom_margin_mm = Number(data.bottom_margin_mm) || 30;
+        state.letterheadConfig.include_summary_page2 = Boolean(data.include_summary_page2);
+      }
+    }
+  } catch (e) {
+    console.warn('Backend letterhead sync error:', e);
+  }
+
+  applyLetterheadPrintStyles();
+}
+
+function openLetterheadModal() {
+  const chkPre = document.getElementById('chkPreprintedLetterhead');
+  const rngTop = document.getElementById('rngTopMargin');
+  const lblTop = document.getElementById('lblTopMargin');
+  const rngBottom = document.getElementById('rngBottomMargin');
+  const lblBottom = document.getElementById('lblBottomMargin');
+  const chkPage2 = document.getElementById('chkIncludeSummaryPage2');
+  const modal = document.getElementById('letterheadModal');
+
+  if (chkPre) chkPre.checked = Boolean(state.letterheadConfig.preprinted_letterhead);
+  if (rngTop) rngTop.value = state.letterheadConfig.top_margin_mm || 45;
+  if (lblTop) lblTop.textContent = `${rngTop.value} mm`;
+  if (rngBottom) rngBottom.value = state.letterheadConfig.bottom_margin_mm || 30;
+  if (lblBottom) lblBottom.textContent = `${rngBottom.value} mm`;
+  if (chkPage2) chkPage2.checked = Boolean(state.letterheadConfig.include_summary_page2);
+
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeLetterheadModal() {
+  const modal = document.getElementById('letterheadModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function onLetterheadConfigChange() {
+  const rngTop = document.getElementById('rngTopMargin');
+  const lblTop = document.getElementById('lblTopMargin');
+  const rngBottom = document.getElementById('rngBottomMargin');
+  const lblBottom = document.getElementById('lblBottomMargin');
+  if (rngTop && lblTop) lblTop.textContent = `${rngTop.value} mm`;
+  if (rngBottom && lblBottom) lblBottom.textContent = `${rngBottom.value} mm`;
+}
+
+function resetLetterheadDefaults() {
+  const chkPre = document.getElementById('chkPreprintedLetterhead');
+  const rngTop = document.getElementById('rngTopMargin');
+  const lblTop = document.getElementById('lblTopMargin');
+  const rngBottom = document.getElementById('rngBottomMargin');
+  const lblBottom = document.getElementById('lblBottomMargin');
+  const chkPage2 = document.getElementById('chkIncludeSummaryPage2');
+
+  if (chkPre) chkPre.checked = false;
+  if (rngTop) rngTop.value = 45;
+  if (lblTop) lblTop.textContent = '45 mm';
+  if (rngBottom) rngBottom.value = 30;
+  if (lblBottom) lblBottom.textContent = '30 mm';
+  if (chkPage2) chkPage2.checked = false;
+}
+
+async function saveAndApplyLetterheadModal() {
+  const chkPre = document.getElementById('chkPreprintedLetterhead');
+  const rngTop = document.getElementById('rngTopMargin');
+  const rngBottom = document.getElementById('rngBottomMargin');
+  const chkPage2 = document.getElementById('chkIncludeSummaryPage2');
+
+  state.letterheadConfig = {
+    preprinted_letterhead: chkPre ? chkPre.checked : false,
+    top_margin_mm: rngTop ? parseInt(rngTop.value, 10) : 45,
+    bottom_margin_mm: rngBottom ? parseInt(rngBottom.value, 10) : 30,
+    include_summary_page2: chkPage2 ? chkPage2.checked : false
+  };
+
+  try {
+    localStorage.setItem('somatiq_letterhead_settings', JSON.stringify(state.letterheadConfig));
+  } catch (e) {}
+
+  try {
+    await fetch('/api/letterhead-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state.letterheadConfig)
+    });
+  } catch (e) {
+    console.warn('Backend letterhead save error:', e);
+  }
+
+  applyLetterheadPrintStyles();
+  closeLetterheadModal();
+  showToast('🖨️ Letterhead calibration saved and applied.');
+}
+
+function applyLetterheadPrintStyles() {
+  let styleEl = document.getElementById('dynamicLetterheadStyle');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'dynamicLetterheadStyle';
+    document.head.appendChild(styleEl);
+  }
+
+  const { preprinted_letterhead, top_margin_mm, bottom_margin_mm, include_summary_page2 } = state.letterheadConfig;
+
+  styleEl.textContent = `
+    @media print {
+      .print-hospital-header {
+        display: ${preprinted_letterhead ? 'none !important' : 'block !important'};
+      }
+      .rich-editor-content {
+        padding-top: ${top_margin_mm || 45}mm !important;
+        padding-bottom: ${bottom_margin_mm || 30}mm !important;
+      }
+      .print-page2-summary {
+        display: ${include_summary_page2 ? 'block !important' : 'none !important'};
+      }
+    }
+  `;
+
+  // Update Page 2 print container text
+  const printPage2El = document.getElementById('printPage2Summary');
+  const printPage2Text = document.getElementById('printPage2SummaryText');
+  if (printPage2El && printPage2Text) {
+    if (include_summary_page2 && state.patientSummaries.en) {
+      printPage2Text.textContent = state.patientSummaries.en;
+      printPage2El.classList.remove('hidden');
+    } else {
+      printPage2El.classList.add('hidden');
+    }
   }
 }

@@ -145,6 +145,26 @@
     font-size: 9pt;
     color: #444444;
   }
+
+  /* V1.1: Ensure AI and Phonetic Diff Highlights NEVER print on physical paper */
+  mark.ai-diff-highlight,
+  mark.phonetic-diff-highlight,
+  .ai-diff-highlight,
+  .phonetic-diff-highlight {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    color: #000000 !important;
+    text-decoration: none !important;
+  }
+
+  /* V1.1: Page 2 Patient-Friendly Summary (when enabled) */
+  .print-page2-summary {
+    page-break-before: always !important;
+    break-before: page !important;
+    padding-top: 30mm;
+    display: block !important;
+  }
 }
 
 /* In-browser preview default for print elements */

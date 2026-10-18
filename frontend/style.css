@@ -802,3 +802,38 @@ body {
   font-size: 0.85rem;
   font-weight: 500;
 }
+
+/* Somatiq AI Voice V1.1 - Visual AI Diff Highlighting & Sign-Off */
+.ai-diff-highlight {
+  background: rgba(245, 158, 11, 0.22) !important;
+  border-bottom: 2px solid #f59e0b !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+  color: inherit !important;
+  display: inline !important;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.ai-diff-highlight:focus,
+.ai-diff-highlight.current-focus {
+  outline: 2px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.38) !important;
+}
+
+.phonetic-diff-highlight {
+  background: rgba(6, 182, 212, 0.18) !important;
+  border-bottom: 2px dashed #06b6d4 !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+  color: inherit !important;
+  display: inline !important;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.phonetic-diff-highlight:focus,
+.phonetic-diff-highlight.current-focus {
+  outline: 2px solid #06b6d4;
+  background: rgba(6, 182, 212, 0.32) !important;
+}

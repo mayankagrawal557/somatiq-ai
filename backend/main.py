@@ -40,6 +40,8 @@ from backend.database import (
     save_custom_template,
     get_custom_templates
 )
+from backend.db_service import DatabaseService
+from backend.smart_structurer import SmartStructurer
 
 # Zero-PHI Production Logger (HIPAA/DISHA compliant)
 logger = logging.getLogger("somatiq.production")
@@ -134,7 +136,14 @@ manager = ConnectionManager()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: start dead connection pruner loop
+    # Startup: load persistent custom lexicon rules from Supabase / SQLite into Pass-1 engine
+    try:
+        loaded = DatabaseService.load_lexicon_into_engine()
+        logger.info(f"Persistent custom lexicon synchronized: {loaded} terms.")
+    except Exception as e:
+        logger.warning(f"Failed loading persistent lexicon: {e}")
+
+    # Start dead connection pruner loop
     reaper = asyncio.create_task(manager.reaper_loop())
     yield
     # Cleanup on shutdown
@@ -208,6 +217,18 @@ class SaveReportRequest(BaseModel):
     provenance: Optional[Any] = {}
     human_approval: Optional[Any] = {}
 
+class SmartStructureRequest(BaseModel):
+    template_key: str
+    current_template_html: Optional[str] = ""
+    raw_dictation: str
+    patient_age_gender: Optional[str] = "45Y / M"
+    modality: Optional[str] = "CT"
+
+class MacroRequest(BaseModel):
+    trigger_phrase: str
+    expansion_text: str
+    modality: Optional[str] = "all"
+
 # Endpoints
 
 @app.get("/api/health")
@@ -257,7 +278,7 @@ def list_trained_words():
 def train_word_endpoint(req: TrainWordRequest):
     """
     Trains a new word with phonetic alias.
-    Syncs with both PhoneticCorrector and Pass1PhoneticPipeline for real-time <5ms biasing.
+    Syncs with PhoneticCorrector, Pass1PhoneticPipeline, and DatabaseService for permanent cloud persistence.
     """
     term = req.term.strip()
     if not term:
@@ -267,16 +288,26 @@ def train_word_endpoint(req: TrainWordRequest):
         Pass1PhoneticPipeline.add_custom_rule(req.misheard.strip(), term, req.modality or "General")
     else:
         Pass1PhoneticPipeline.add_hotword(term)
+
+    try:
+        DatabaseService.add_lexicon_term(req.misheard or "", term, req.modality or "all")
+    except Exception as e:
+        logger.warning(f"Could not persist trained word to DB: {e}")
+
     return res
 
 @app.delete("/api/trained-words")
 def delete_trained_word_endpoint(req: DeleteWordRequest):
-    """Deletes a doctor-trained term from custom vocabulary and Pass-1 rules."""
+    """Deletes a doctor-trained term from custom vocabulary, Pass-1 rules, and DB."""
     term = req.term.strip()
     if not term:
         raise HTTPException(status_code=400, detail="Term is required")
     deleted = PhoneticCorrector.delete_trained_word(term)
     Pass1PhoneticPipeline.delete_rule_by_term(term)
+    try:
+        DatabaseService.delete_lexicon_term(term)
+    except Exception as e:
+        logger.warning(f"Could not delete trained word from DB: {e}")
     return {"status": "success", "deleted": deleted, "term": term}
 
 @app.get("/api/biasing-profile/{template_id}")
@@ -299,7 +330,7 @@ def get_biasing_profile(template_id: str):
 @app.post("/api/custom-rule")
 def add_custom_rule_endpoint(data: Dict[str, Any]):
     """
-    Adds a custom doctor-trained pronunciation rule and persists to custom_rules.json.
+    Adds a custom doctor-trained pronunciation rule and persists to custom_rules.json and DB.
     Immediately reloads in active pipeline without server restart.
     """
     pattern = data.get("pattern", "")
@@ -308,6 +339,10 @@ def add_custom_rule_endpoint(data: Dict[str, Any]):
     if not pattern or not replacement:
         raise HTTPException(status_code=400, detail="Pattern and replacement are required")
     res = Pass1PhoneticPipeline.add_custom_rule(pattern, replacement, category)
+    try:
+        DatabaseService.add_lexicon_term(pattern, replacement, category)
+    except Exception as e:
+        logger.warning(f"Could not persist custom rule to DB: {e}")
     return res
 
 @app.get("/api/custom-rules")
@@ -364,6 +399,53 @@ def format_report_endpoint(req: FormatReportRequest):
     )
     return result
 
+@app.post("/api/smart-structure")
+def smart_structure_endpoint(req: SmartStructureRequest):
+    """
+    One-Shot Smart AI Structuring Mode (Alt+S):
+    Surgically merges raw voice dictation into baseline template HTML,
+    enforcing anti-hallucination bounds, gender safety pruning, diff highlighting,
+    and generating clinical impression and patient summaries.
+    """
+    return SmartStructurer.structure_and_merge(
+        template_key=req.template_key,
+        current_template_html=req.current_template_html or "",
+        raw_dictation=req.raw_dictation or "",
+        patient_age_gender=req.patient_age_gender or "45Y / M",
+        modality=req.modality or "CT"
+    )
+
+@app.get("/api/macros")
+def get_macros_endpoint():
+    """Lists all user-defined custom macros."""
+    return {"macros": DatabaseService.get_macros()}
+
+@app.post("/api/macros")
+def add_macro_endpoint(req: MacroRequest):
+    """Adds or updates a custom voice macro."""
+    if not req.trigger_phrase or not req.expansion_text:
+        raise HTTPException(status_code=400, detail="Trigger phrase and expansion text required")
+    return DatabaseService.add_macro(req.trigger_phrase, req.expansion_text, req.modality or "all")
+
+@app.delete("/api/macros")
+def delete_macro_endpoint(req: Dict[str, str]):
+    """Deletes a custom voice macro by trigger phrase."""
+    trigger = req.get("trigger_phrase", "")
+    if not trigger:
+        raise HTTPException(status_code=400, detail="Trigger phrase is required")
+    deleted = DatabaseService.delete_macro(trigger)
+    return {"status": "success", "deleted": deleted}
+
+@app.get("/api/letterhead-settings")
+def get_letterhead_settings_endpoint():
+    """Retrieves hospital print letterhead calibration settings."""
+    return DatabaseService.get_letterhead_settings()
+
+@app.post("/api/letterhead-settings")
+def save_letterhead_settings_endpoint(settings: Dict[str, Any]):
+    """Persists hospital print letterhead calibration settings."""
+    return DatabaseService.save_letterhead_settings(settings)
+
 @app.post("/api/transcribe-audio")
 async def transcribe_audio(
     file: UploadFile = File(...),
@@ -413,7 +495,21 @@ async def transcribe_audio(
 
 @app.post("/api/reports")
 def save_report_endpoint(req: SaveReportRequest):
-    report_id = save_report(req.dict())
+    report_dict = req.dict()
+    report_id = save_report(report_dict)
+    try:
+        DatabaseService.save_report({
+            "patient_name": req.patient_name,
+            "age_gender": req.patient_age_sex,
+            "modality": req.modality,
+            "template_key": req.template_id,
+            "raw_transcript": req.dictation_transcript or req.original_transcript or "",
+            "final_report_html": req.full_report,
+            "patient_summary": "",
+            "status": req.status
+        })
+    except Exception as e:
+        logger.warning(f"Could not sync report to DatabaseService: {e}")
     return {"status": "success", "report_id": report_id}
 
 @app.get("/api/reports")

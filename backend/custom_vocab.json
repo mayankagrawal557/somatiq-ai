@@ -1,4 +1,12 @@
 {
-  "trained_words": [],
-  "sound_alikes": {}
+  "trained_words": [
+    {
+      "term": "pleural effusion test",
+      "misheard": "plural fusion test",
+      "modality": "Chest"
+    }
+  ],
+  "sound_alikes": {
+    "plural fusion test": "pleural effusion test"
+  }
 }
