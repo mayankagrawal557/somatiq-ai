@@ -20,7 +20,11 @@ const state = {
   recTimerInterval: null,
   recSeconds: 0,
   templates: [],
-  currentReportId: null
+  currentReportId: null,
+  reconnectAttempts: 0,
+  reconnectTimer: null,
+  heartbeatInterval: null,
+  offlineBuffer: []
 };
 
 // DOM References
@@ -65,21 +69,63 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 400);
 });
 
-// 1. WebSocket Live Stream Connection (/ws/dictate)
+// 1. WebSocket Live Stream Connection (/ws/dictate) with Auto-Reconnect & Offline Buffering
 function initWebSocket() {
+  if (state.reconnectTimer) {
+    clearTimeout(state.reconnectTimer);
+    state.reconnectTimer = null;
+  }
+  if (state.heartbeatInterval) {
+    clearInterval(state.heartbeatInterval);
+    state.heartbeatInterval = null;
+  }
+
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = `${protocol}//${window.location.host}/ws/dictate`;
 
-  state.ws = new WebSocket(wsUrl);
+  try {
+    state.ws = new WebSocket(wsUrl);
+  } catch (err) {
+    scheduleReconnect();
+    return;
+  }
 
   state.ws.onopen = () => {
+    state.reconnectAttempts = 0;
     wsStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500';
     wsStatusText.textContent = 'WS Live';
+
+    // Start keepalive heartbeat ping every 20 seconds
+    state.heartbeatInterval = setInterval(() => {
+      if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+        try {
+          state.ws.send(JSON.stringify({ type: 'ping' }));
+        } catch (e) {}
+      }
+    }, 20000);
+
+    // Flush offline buffer if any dictations were queued during network blip
+    if (state.offlineBuffer && state.offlineBuffer.length > 0) {
+      const bufferCount = state.offlineBuffer.length;
+      while (state.offlineBuffer.length > 0) {
+        const item = state.offlineBuffer.shift();
+        try {
+          state.ws.send(JSON.stringify(item));
+        } catch (e) {
+          state.offlineBuffer.unshift(item);
+          break;
+        }
+      }
+      showToast(`Network restored. Synced ${bufferCount} offline dictation segment(s) to server.`);
+    }
   };
 
   state.ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
+      if (data.type === 'pong' || data.type === 'connection_ready') {
+        return;
+      }
       if (data.type === 'transcription_result' || data.type === 'audio_chunk_transcribed') {
         const textToInsert = data.formatted_text || data.text;
         if (data.command === 'clear_last_sentence') {
@@ -105,11 +151,35 @@ function initWebSocket() {
   };
 
   state.ws.onclose = () => {
-    wsStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
-    wsStatusText.textContent = 'WS Offline';
-    // Reconnect after 3 seconds
-    setTimeout(initWebSocket, 3000);
+    scheduleReconnect();
   };
+
+  state.ws.onerror = (e) => {
+    console.warn('WebSocket encountered error:', e);
+  };
+}
+
+function scheduleReconnect() {
+  if (state.heartbeatInterval) {
+    clearInterval(state.heartbeatInterval);
+    state.heartbeatInterval = null;
+  }
+
+  state.reconnectAttempts++;
+  // Exponential backoff with jitter: min(30s, 1s * 1.5^attempts) + random jitter (0-1s)
+  const baseDelay = Math.min(30000, 1000 * Math.pow(1.5, state.reconnectAttempts));
+  const jitter = Math.random() * 1000;
+  const delay = Math.round(baseDelay + jitter);
+
+  if (state.offlineBuffer && state.offlineBuffer.length > 0) {
+    wsStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse';
+    wsStatusText.textContent = `Offline (Buffering ${state.offlineBuffer.length})`;
+  } else {
+    wsStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse';
+    wsStatusText.textContent = `Reconnecting (${state.reconnectAttempts})...`;
+  }
+
+  state.reconnectTimer = setTimeout(initWebSocket, delay);
 }
 
 // 2. Real-Time AudioContext Waveform Visualizer
@@ -214,16 +284,21 @@ function initSpeechRecognition() {
     }
 
     if (finalChunk.trim()) {
-      // Forward to backend WebSocket for voice command & macro parsing
+      const payload = {
+        type: 'text_segment',
+        text: finalChunk.trim(),
+        template_id: selectTemplate.value
+      };
+
       if (state.ws && state.ws.readyState === WebSocket.OPEN) {
-        state.ws.send(JSON.stringify({
-          type: 'text_segment',
-          text: finalChunk.trim(),
-          template_id: selectTemplate.value
-        }));
+        state.ws.send(JSON.stringify(payload));
       } else {
-        // Fallback local insert
+        // Offline resilience: buffer packet and insert locally so dictation continues uninterrupted
+        state.offlineBuffer.push(payload);
         insertTextAtCursor(finalChunk.trim());
+        wsStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse';
+        wsStatusText.textContent = `Offline (Buffering ${state.offlineBuffer.length})`;
+        showToast(`Offline mode: Dictation saved locally (${state.offlineBuffer.length} queued).`);
       }
     }
   };

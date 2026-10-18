@@ -40,6 +40,21 @@ class SpeechToTextEngine:
         return cls._local_model
 
     @classmethod
+    def cleanup_memory(cls):
+        """
+        Frees up memory and PyTorch VRAM if applicable.
+        Invoked after client disconnection or heavy batch transcriptions.
+        """
+        import gc
+        gc.collect()
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except ImportError:
+            pass
+
+    @classmethod
     def transcribe_audio_bytes(
         cls,
         audio_bytes: bytes,
@@ -48,6 +63,7 @@ class SpeechToTextEngine:
     ) -> Dict[str, Any]:
         """
         Transcribes audio bytes with medical vocabulary boosting.
+        Zero-logging of audio payload content for HIPAA/DISHA compliance.
         """
         if not audio_bytes or len(audio_bytes) < 100:
             return {"text": "", "engine": "empty_payload"}
@@ -58,6 +74,7 @@ class SpeechToTextEngine:
         if STT_MODE == "local":
             model = cls.get_local_model()
             if model and model is not False:
+                tmp_path = None
                 try:
                     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                         tmp.write(audio_bytes)
@@ -77,10 +94,15 @@ class SpeechToTextEngine:
                         vad_parameters=dict(min_silence_duration_ms=400)
                     )
                     transcription = " ".join(seg.text for seg in segments).strip()
-                    os.remove(tmp_path)
                     return {"text": transcription, "engine": "faster_whisper_local"}
                 except Exception as e:
                     pass
+                finally:
+                    if tmp_path and os.path.exists(tmp_path):
+                        try:
+                            os.remove(tmp_path)
+                        except Exception:
+                            pass
 
         # Mode B1: Groq Cloud API if GROQ_API_KEY is available (whisper-large-v3-turbo for sub-second latency)
         groq_key = os.getenv("GROQ_API_KEY", "")
