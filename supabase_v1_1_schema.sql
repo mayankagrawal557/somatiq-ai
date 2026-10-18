@@ -56,3 +56,27 @@ CREATE TABLE IF NOT EXISTS letterhead_settings (
 INSERT INTO letterhead_settings (id, preprinted_letterhead, top_margin_mm, bottom_margin_mm, include_summary_page2)
 VALUES ('default_hospital', FALSE, 45, 30, FALSE)
 ON CONFLICT (id) DO NOTHING;
+
+-- 5. Live Teleradiology Worklist Queue & SLA Tracking
+CREATE TABLE IF NOT EXISTS worklist_studies (
+    id TEXT PRIMARY KEY,
+    uhid TEXT NOT NULL,
+    patient_name TEXT NOT NULL,
+    age_gender TEXT NOT NULL,
+    patient_phone TEXT NOT NULL,
+    referring_doctor TEXT NOT NULL,
+    modality TEXT NOT NULL,
+    template_key TEXT NOT NULL,
+    study_name TEXT NOT NULL,
+    clinical_history TEXT NOT NULL,
+    priority TEXT NOT NULL DEFAULT 'ROUTINE',
+    status TEXT NOT NULL DEFAULT 'PENDING',
+    sla_target_minutes INTEGER NOT NULL DEFAULT 30,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+    signed_at TIMESTAMP WITH TIME ZONE,
+    final_report_html TEXT,
+    patient_summary TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_worklist_priority_status ON worklist_studies (priority, status);
+CREATE INDEX IF NOT EXISTS idx_worklist_created ON worklist_studies (created_at ASC);

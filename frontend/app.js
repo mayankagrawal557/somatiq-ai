@@ -36,7 +36,12 @@ const state = {
   },
   currentEditFocusIndex: -1,
   lastSuggestedImpression: null,
-  collaboratorLoading: false
+  collaboratorLoading: false,
+  worklistQueue: [],
+  activeStudyId: null,
+  currentWorklistFilter: 'ALL',
+  isWorklistDrawerOpen: false,
+  activeWhatsAppStudy: null
 };
 
 // DOM References
@@ -73,6 +78,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initCanvasWaveform();
   checkServerHealth();
   initLetterheadSettings();
+
+  // STEP 3: Live Worklist & SLA Timers
+  fetchWorklistQueue();
+  setInterval(updateAllSLATimers, 1000);
+  setInterval(fetchWorklistQueue, 15000);
+  populateNewPatientTemplates();
   
   // Word count & AI diff highlight tracker
   richEditor.addEventListener('input', () => {
@@ -94,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Global & Editor Keyboard Shortcuts (Alt+S, Alt+C, Ctrl+Shift+C, Ctrl+Enter, Tab)
+  // Global & Editor Keyboard Shortcuts (Alt+S, Alt+C, Alt+W, Ctrl+Shift+C, Ctrl+Shift+S, Ctrl+Enter, Tab)
   window.addEventListener('keydown', (e) => {
     // 1. One-Shot Smart AI Merge: Alt + S
     if (e.altKey && (e.key === 's' || e.key === 'S')) {
@@ -110,14 +121,28 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // 3. 1-Click Clean Copy for RIS / PACS / Word: Ctrl + Shift + C
+    // 3. Live Teleradiology Worklist: Alt + W
+    if (e.altKey && (e.key === 'w' || e.key === 'W')) {
+      e.preventDefault();
+      toggleWorklistDrawer();
+      return;
+    }
+
+    // 4. 1-Click Clean Copy for RIS / PACS / Word: Ctrl + Shift + C
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
       e.preventDefault();
       copyCleanReportForRIS();
       return;
     }
 
-    // 4. Accept All AI Edits: Ctrl + Enter
+    // 5. Approve, Sign & Auto-Advance to Next Patient: Ctrl + Shift + S
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      signAndAutoAdvance();
+      return;
+    }
+
+    // 6. Accept All AI Edits: Ctrl + Enter
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       const marks = richEditor.querySelectorAll('mark');
       if (marks.length > 0) {
@@ -127,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 5. Next AI Edit Navigation: Tab
+    // 7. Next AI Edit Navigation: Tab
     if (e.key === 'Tab' && !e.shiftKey) {
       const marks = richEditor.querySelectorAll('mark');
       if (marks.length > 0 && (document.activeElement === richEditor || richEditor.contains(document.activeElement))) {
@@ -1960,4 +1985,662 @@ function insertCollaboratorImpression() {
   richEditor.scrollTop = richEditor.scrollHeight;
 
   showToast('📥 Suggested impression inserted into report (Highlighted for clinician sign-off).');
+}
+
+// =========================================================================
+// STEP 3: Live Teleradiology Worklist Queue, SLA Timers & WhatsApp Dispatch
+// =========================================================================
+
+function toggleWorklistDrawer() {
+  const drawer = document.getElementById('worklistDrawer');
+  if (!drawer) return;
+  const isClosed = drawer.classList.contains('-translate-x-full');
+  if (isClosed) {
+    drawer.classList.remove('-translate-x-full');
+    state.isWorklistDrawerOpen = true;
+    fetchWorklistQueue();
+  } else {
+    drawer.classList.add('-translate-x-full');
+    state.isWorklistDrawerOpen = false;
+  }
+}
+
+async function fetchWorklistQueue() {
+  try {
+    const res = await fetch('/api/worklist');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    state.worklistQueue = data.studies || [];
+
+    // Update KPI Ribbon counters
+    const kpiStat = document.getElementById('kpiStatPending');
+    const kpiQueue = document.getElementById('kpiQueuePending');
+    const kpiSigned = document.getElementById('kpiSignedToday');
+    const kpiTat = document.getElementById('kpiAvgTat');
+    const headerBadge = document.getElementById('headerQueueBadge');
+
+    if (data.stats) {
+      if (kpiStat) kpiStat.textContent = data.stats.stat_pending;
+      if (kpiQueue) kpiQueue.textContent = data.stats.queue_pending;
+      if (kpiSigned) kpiSigned.textContent = data.stats.signed_today;
+      if (kpiTat) kpiTat.textContent = `${data.stats.avg_tat_minutes}m`;
+      if (headerBadge) headerBadge.textContent = data.stats.queue_pending;
+    }
+
+    renderWorklistCards();
+    updateAllSLATimers();
+  } catch (err) {
+    console.warn('Failed to fetch worklist queue:', err);
+  }
+}
+
+function setWorklistFilter(filter) {
+  state.currentWorklistFilter = filter;
+  const filterBtns = {
+    ALL: document.getElementById('filterAll'),
+    STAT: document.getElementById('filterSTAT'),
+    URGENT: document.getElementById('filterURGENT'),
+    ROUTINE: document.getElementById('filterROUTINE'),
+    PENDING: document.getElementById('filterPENDING')
+  };
+
+  Object.entries(filterBtns).forEach(([key, btn]) => {
+    if (!btn) return;
+    if (key === filter) {
+      btn.className = 'px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold transition';
+    } else {
+      btn.className = 'px-2 py-0.5 rounded bg-pacs-900 text-slate-300 border border-pacs-800 hover:bg-pacs-800 transition font-medium';
+    }
+  });
+
+  renderWorklistCards();
+}
+
+function filterWorklistCards() {
+  renderWorklistCards();
+}
+
+function renderWorklistCards() {
+  const container = document.getElementById('worklistCardsContainer');
+  if (!container) return;
+
+  const searchTerm = (document.getElementById('worklistSearch')?.value || '').trim().toLowerCase();
+  const filter = state.currentWorklistFilter;
+
+  const filtered = state.worklistQueue.filter(study => {
+    // 1. Status/Priority Filter
+    if (filter === 'STAT' && study.priority !== 'STAT') return false;
+    if (filter === 'URGENT' && study.priority !== 'URGENT') return false;
+    if (filter === 'ROUTINE' && study.priority !== 'ROUTINE') return false;
+    if (filter === 'PENDING' && !['PENDING', 'IN_PROGRESS'].includes(study.status)) return false;
+
+    // 2. Search Text
+    if (searchTerm) {
+      const hay = `${study.patient_name} ${study.uhid} ${study.modality} ${study.study_name} ${study.referring_doctor} ${study.clinical_history}`.toLowerCase();
+      if (!hay.includes(searchTerm)) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="py-12 text-center text-slate-500 text-xs">
+        <span class="text-2xl block mb-2">📋</span>
+        <p>No matching patient studies found.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(s => {
+    const isActive = s.id === state.activeStudyId;
+    let cardClasses = 'rounded-xl p-3 border transition-all duration-200 shadow-sm relative space-y-2 ';
+
+    if (isActive) {
+      cardClasses += 'bg-cyan-950/40 border-cyan-500 shadow-md shadow-cyan-950/60 ring-1 ring-cyan-500/50';
+    } else if (s.priority === 'STAT') {
+      cardClasses += 'bg-rose-950/20 border-rose-800/80 hover:border-rose-600';
+    } else if (s.priority === 'URGENT') {
+      cardClasses += 'bg-amber-950/20 border-amber-800/80 hover:border-amber-600';
+    } else {
+      cardClasses += 'bg-pacs-950/70 border-pacs-850 hover:border-pacs-700';
+    }
+
+    // Priority badge
+    let priorityBadge = '';
+    if (s.priority === 'STAT') {
+      priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-900/90 text-rose-200 border border-rose-600 animate-pulse">🚨 STAT</span>';
+    } else if (s.priority === 'URGENT') {
+      priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-900/80 text-amber-200 border border-amber-600">⚡ URGENT</span>';
+    } else {
+      priorityBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-pacs-900 text-slate-400 border border-pacs-800">ROUTINE</span>';
+    }
+
+    // Status badge
+    let statusBadge = '';
+    if (s.status === 'SIGNED') {
+      statusBadge = '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">✅ SIGNED</span>';
+    } else if (s.status === 'DISPATCHED') {
+      statusBadge = '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal-950 text-teal-300 border border-teal-800">📲 DISPATCHED</span>';
+    } else if (s.status === 'IN_PROGRESS') {
+      statusBadge = '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-950 text-blue-300 border border-blue-800 animate-pulse">⏳ IN PROGRESS</span>';
+    } else {
+      statusBadge = '<span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-pacs-900 text-slate-400 border border-pacs-800">PENDING</span>';
+    }
+
+    return `
+      <div class="${cardClasses}">
+        <!-- Top Badges Row -->
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5">
+            ${priorityBadge}
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">${escapeHtml(s.modality)}</span>
+          </div>
+          ${statusBadge}
+        </div>
+
+        <!-- Patient Demographics -->
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h4 class="font-bold text-white text-xs hover:text-cyan-400 transition cursor-pointer" onclick="loadWorklistStudy('${s.id}')">
+              ${escapeHtml(s.patient_name)}
+            </h4>
+            <div class="text-[10px] text-slate-400 font-mono">
+              UHID: <span class="text-cyan-400">${escapeHtml(s.uhid)}</span> • ${escapeHtml(s.age_gender)}
+            </div>
+          </div>
+          <div class="text-right text-[10px] text-slate-400 shrink-0 font-mono">
+            ${escapeHtml(s.patient_phone || '')}
+          </div>
+        </div>
+
+        <!-- Study & History Preview -->
+        <div class="space-y-0.5">
+          <div class="text-[11px] font-semibold text-slate-200">${escapeHtml(s.study_name)}</div>
+          <div class="text-[10px] text-slate-400 line-clamp-1 italic">${escapeHtml(s.clinical_history || 'Diagnostic examination')}</div>
+        </div>
+
+        <!-- Real-Time SLA Countdown Badge -->
+        <div class="sla-timer-badge pt-1 flex items-center justify-between border-t border-pacs-850/80"
+             data-study-id="${s.id}"
+             data-created-at="${s.created_at}"
+             data-sla-minutes="${s.sla_target_minutes}"
+             data-signed-at="${s.signed_at || ''}"
+             data-status="${s.status}">
+          <span class="text-[10px] text-slate-400 font-mono">SLA Target: ${s.sla_target_minutes}m</span>
+          <span class="sla-timer-display font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-pacs-900 border border-pacs-800">Calculating...</span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="pt-1.5 flex items-center justify-between gap-2">
+          <button onclick="loadWorklistStudy('${s.id}')" class="flex-1 py-1 px-2.5 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1.5 ${isActive ? 'bg-cyan-600 text-white' : 'bg-pacs-800 hover:bg-pacs-700 text-cyan-300 border border-pacs-700'}">
+            <span>${isActive ? '● Active Study' : '📖 Load in Editor'}</span>
+          </button>
+          
+          <button onclick="openWhatsAppModalForStudy('${s.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 text-[11px] font-bold transition flex items-center gap-1" title="Send WhatsApp Notification">
+            <span>📲</span>
+          </button>
+
+          ${s.status === 'SIGNED' || s.status === 'DISPATCHED' ? `
+            <a href="/report/view/${s.id}" target="_blank" class="px-2.5 py-1 rounded-lg bg-blue-950/80 hover:bg-blue-900 border border-blue-800 text-blue-300 text-[11px] font-bold transition flex items-center gap-1" title="View Public Signed Letterhead Report">
+              <span>🔗</span>
+            </a>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  updateAllSLATimers();
+}
+
+function updateAllSLATimers() {
+  const badges = document.querySelectorAll('.sla-timer-badge');
+  badges.forEach(badge => {
+    const createdAtStr = badge.getAttribute('data-created-at');
+    const slaMinutes = parseInt(badge.getAttribute('data-sla-minutes') || '30', 10);
+    const signedAtStr = badge.getAttribute('data-signed-at');
+    const status = badge.getAttribute('data-status');
+    const display = badge.querySelector('.sla-timer-display');
+    if (!display || !createdAtStr) return;
+
+    if (status === 'SIGNED' || status === 'DISPATCHED') {
+      let tatText = 'Signed';
+      if (signedAtStr && createdAtStr) {
+        try {
+          const cTime = new Date(createdAtStr).getTime();
+          const sTime = new Date(signedAtStr).getTime();
+          const tatMins = Math.max(1, Math.round((sTime - cTime) / 60000));
+          const metOrBreached = tatMins <= slaMinutes ? 'SLA Met' : 'Breached';
+          tatText = `Done in ${tatMins}m (${metOrBreached})`;
+        } catch (e) {
+          tatText = 'Signed';
+        }
+      }
+      display.className = 'sla-timer-display font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800';
+      display.textContent = `✅ ${tatText}`;
+      return;
+    }
+
+    // Pending or In-Progress Studies
+    try {
+      const createdTime = new Date(createdAtStr).getTime();
+      const now = Date.now();
+      const elapsedSeconds = Math.max(0, Math.floor((now - createdTime) / 1000));
+      const totalSlaSeconds = slaMinutes * 60;
+      const remainingSeconds = totalSlaSeconds - elapsedSeconds;
+
+      if (remainingSeconds > 300) {
+        // Healthy state (> 5 mins remaining)
+        const m = Math.floor(remainingSeconds / 60);
+        const s = remainingSeconds % 60;
+        display.className = 'sla-timer-display font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-950/70 text-emerald-400 border border-emerald-700/80';
+        display.textContent = `⏳ ${m}m ${String(s).padStart(2, '0')}s remaining`;
+      } else if (remainingSeconds > 0) {
+        // Warning state (<= 5 mins remaining)
+        const m = Math.floor(remainingSeconds / 60);
+        const s = remainingSeconds % 60;
+        display.className = 'sla-timer-display font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-600 animate-pulse';
+        display.textContent = `⚠️ ${m}m ${String(s).padStart(2, '0')}s remaining`;
+      } else {
+        // Overdue / Breached state
+        const overdueSecs = Math.abs(remainingSeconds);
+        const m = Math.floor(overdueSecs / 60);
+        const s = overdueSecs % 60;
+        display.className = 'sla-timer-display font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-600 animate-pulse';
+        display.textContent = `🚨 BREACHED +${m}m ${String(s).padStart(2, '0')}s`;
+      }
+    } catch (e) {
+      display.textContent = `${slaMinutes}m SLA`;
+    }
+  });
+}
+
+async function loadWorklistStudy(studyId) {
+  const study = state.worklistQueue.find(s => s.id === studyId);
+  if (!study) {
+    showToast('Study not found in worklist.');
+    return;
+  }
+
+  state.activeStudyId = study.id;
+
+  // 1. Populate Patient Metadata Header Inputs
+  if (patientName) patientName.value = study.patient_name || '';
+  if (patientAgeSex) patientAgeSex.value = study.age_gender || '';
+  if (patientUHID) patientUHID.value = study.uhid || '';
+  if (patientModality) patientModality.value = study.modality || '';
+
+  const clinicalHistInput = document.getElementById('clinicalHistory');
+  const collabHistInput = document.getElementById('collabClinicalHistoryInput');
+  if (clinicalHistInput) clinicalHistInput.value = study.clinical_history || '';
+  if (collabHistInput) collabHistInput.value = study.clinical_history || '';
+
+  // 2. Select matching template if available
+  if (selectTemplate && study.template_key) {
+    const exists = Array.from(selectTemplate.options).some(opt => opt.value === study.template_key);
+    if (exists) {
+      selectTemplate.value = study.template_key;
+      onTemplateSelect();
+    }
+  }
+
+  // 3. Restore existing report HTML / Patient Summary if available
+  if (study.final_report_html) {
+    richEditor.innerHTML = study.final_report_html;
+  }
+  if (study.patient_summary) {
+    state.patientSummaries.en = study.patient_summary;
+    const summaryContainer = document.getElementById('patientSummaryContainer');
+    const summaryText = document.getElementById('patientSummaryText');
+    if (summaryContainer && summaryText) {
+      summaryText.textContent = study.patient_summary;
+      summaryContainer.classList.remove('hidden');
+    }
+  }
+
+  updateWordCount();
+  updatePendingEditsCount();
+
+  // 4. Update Collaborator Context Badge
+  const collabBadge = document.getElementById('collabContextBadge');
+  if (collabBadge) {
+    collabBadge.textContent = `${study.uhid} • ${study.patient_name} (${study.modality})`;
+  }
+
+  // 5. Update study status to IN_PROGRESS if currently PENDING
+  if (study.status === 'PENDING') {
+    study.status = 'IN_PROGRESS';
+    try {
+      fetch(`/api/worklist/${study.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'IN_PROGRESS' })
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
+  renderWorklistCards();
+  showToast(`📋 Loaded patient: ${study.patient_name} (${study.modality})`);
+}
+
+async function signAndAutoAdvance() {
+  const btn = document.getElementById('btnSignAndNext');
+  if (btn) btn.disabled = true;
+
+  try {
+    // 1. Identify active study or fallback to first pending/in_progress study
+    let study = state.worklistQueue.find(s => s.id === state.activeStudyId);
+    if (!study) {
+      study = state.worklistQueue.find(s => ['IN_PROGRESS', 'PENDING'].includes(s.status));
+      if (study) {
+        state.activeStudyId = study.id;
+      }
+    }
+
+    if (!study) {
+      showToast('No active patient study loaded from worklist.');
+      return;
+    }
+
+    // 2. Clear all diff highlights automatically upon sign-off
+    acceptAllEdits();
+
+    const finalReportHtml = richEditor.innerHTML;
+    const patientSummaryText = state.patientSummaries.en || '';
+
+    showToast(`✅ Signing and recording TAT for ${study.patient_name}...`);
+
+    // 3. Call backend to update status to SIGNED
+    const res = await fetch(`/api/worklist/${study.id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'SIGNED',
+        final_report_html: finalReportHtml,
+        patient_summary: patientSummaryText
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to sign report in worklist');
+    }
+
+    const data = await res.json();
+    study.status = 'SIGNED';
+    study.signed_at = data.study?.signed_at || new Date().toISOString();
+    study.final_report_html = finalReportHtml;
+    study.patient_summary = patientSummaryText;
+
+    showToast(`✅ Report signed for ${study.patient_name}! Turnaround time recorded.`);
+
+    // Refresh queue KPIs
+    await fetchWorklistQueue();
+
+    // 4. Auto-advance workflow if enabled
+    const chkAutoAdvance = document.getElementById('chkAutoAdvance');
+    if (chkAutoAdvance && chkAutoAdvance.checked) {
+      // Find next pending or in_progress study (excluding current study)
+      const nextStudy = state.worklistQueue.find(s => ['PENDING', 'IN_PROGRESS'].includes(s.status) && s.id !== study.id);
+      if (nextStudy) {
+        showToast(`🚀 Auto-advancing to next patient (${nextStudy.patient_name}) in 1.2s...`);
+        setTimeout(() => {
+          loadWorklistStudy(nextStudy.id);
+        }, 1200);
+      } else {
+        showToast('🎉 All queued cases completed! Worklist fully reported.');
+      }
+    }
+
+  } catch (err) {
+    console.error('Sign & Auto-Advance error:', err);
+    showToast(`Error signing report: ${err.message}`);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// -------------------------------------------------------------
+// Add Patient Modal Controller
+// -------------------------------------------------------------
+function openAddPatientModal() {
+  const modal = document.getElementById('addPatientModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    onNewModalityChange();
+  }
+}
+
+function closeAddPatientModal() {
+  const modal = document.getElementById('addPatientModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function onNewModalityChange() {
+  const modSelect = document.getElementById('newPatientModality');
+  const tplSelect = document.getElementById('newPatientTemplateKey');
+  if (!modSelect || !tplSelect) return;
+
+  const modality = modSelect.value;
+  tplSelect.innerHTML = '';
+
+  const modalityMap = {
+    'USG': [
+      { key: 'usg_abdomen', label: 'Ultrasound Whole Abdomen' }
+    ],
+    'CT': [
+      { key: 'ct_brain', label: 'CT Brain Plain / Non-Contrast' },
+      { key: 'ct_chest', label: 'CT Chest / HRCT Thorax' }
+    ],
+    'MRI': [
+      { key: 'mri_brain', label: 'MRI Brain Multi-sequence' },
+      { key: 'mri_lumbar_spine', label: 'MRI Lumbar Spine' }
+    ],
+    'X-RAY': [
+      { key: 'chest_xray', label: 'Chest X-Ray PA View' }
+    ],
+    'PET-CT': [
+      { key: 'petct_fdg_whole_body', label: 'Whole Body FDG PET-CT' },
+      { key: 'petct_psma', label: 'PSMA PET-CT (Prostate)' },
+      { key: 'petct_dotanoc', label: 'DOTANOC / DOTATATE PET-CT' },
+      { key: 'petct_brain', label: 'Brain PET-CT' },
+      { key: 'petct_cardiac', label: 'Cardiac PET-CT' }
+    ],
+    'SPECT': [
+      { key: 'spect_bone_scan', label: 'Bone Scan (99mTc-MDP)' },
+      { key: 'spect_renal_dtpa', label: 'Renal Scan - DTPA (Dynamic/GFR)' },
+      { key: 'spect_renal_dmsa', label: 'Renal Scan - DMSA (Static)' },
+      { key: 'spect_thyroid', label: 'Thyroid & Parathyroid Scan' },
+      { key: 'spect_cardiac_perfusion', label: 'Myocardial Perfusion SPECT' },
+      { key: 'spect_lung_vq', label: 'Lung Perfusion (V/Q Scan)' },
+      { key: 'spect_hida', label: 'HIDA Scan' },
+      { key: 'spect_brain', label: 'Brain SPECT' }
+    ],
+    'THERANOSTICS': [
+      { key: 'thera_radioiodine_i131', label: 'Radioiodine Therapy (I-131)' },
+      { key: 'thera_lu177_psma', label: 'Lu-177 PSMA Therapy' },
+      { key: 'thera_lu177_dotatate', label: 'Lu-177 DOTATATE Therapy' },
+      { key: 'thera_ac225_psma', label: 'Ac-225 PSMA Alpha Therapy' },
+      { key: 'thera_bone_pain_palliation', label: 'Bone Pain Palliation' },
+      { key: 'thera_radiosynovectomy', label: 'Radiosynovectomy' }
+    ]
+  };
+
+  const templates = modalityMap[modality] || [{ key: 'ct_brain', label: 'CT Brain Plain' }];
+  templates.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.key;
+    opt.textContent = t.label;
+    tplSelect.appendChild(opt);
+  });
+}
+
+function populateNewPatientTemplates() {
+  onNewModalityChange();
+}
+
+async function handleAddPatientSubmit(e) {
+  e.preventDefault();
+
+  const name = document.getElementById('newPatientName')?.value.trim();
+  const ageGender = document.getElementById('newPatientAgeGender')?.value.trim();
+  const phone = document.getElementById('newPatientPhone')?.value.trim();
+  const uhid = document.getElementById('newPatientUHID')?.value.trim();
+  const priority = document.getElementById('newPatientPriority')?.value || 'ROUTINE';
+  const modality = document.getElementById('newPatientModality')?.value || 'CT';
+  const templateKey = document.getElementById('newPatientTemplateKey')?.value || 'ct_brain';
+  const doctor = document.getElementById('newPatientDoctor')?.value.trim() || 'Dr. Self-Referred / Duty Clinician';
+  const history = document.getElementById('newPatientHistory')?.value.trim();
+
+  if (!name || !ageGender || !phone || !history) {
+    showToast('Please fill in all required patient fields.');
+    return;
+  }
+
+  try {
+    const payload = {
+      patient_name: name,
+      age_gender: ageGender,
+      patient_phone: phone,
+      uhid: uhid || undefined,
+      priority: priority,
+      modality: modality,
+      template_key: templateKey,
+      referring_doctor: doctor,
+      clinical_history: history
+    };
+
+    const res = await fetch('/api/worklist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to enqueue patient');
+    }
+
+    const data = await res.json();
+    closeAddPatientModal();
+    showToast(`✅ Patient ${name} enqueued with ${data.study.sla_target_minutes}m SLA target!`);
+
+    await fetchWorklistQueue();
+
+    // If STAT or no study currently active, load immediately
+    if (priority === 'STAT' || !state.activeStudyId) {
+      loadWorklistStudy(data.study.id);
+    }
+  } catch (err) {
+    console.error('Failed to add patient to worklist:', err);
+    showToast(`Failed to add patient: ${err.message}`);
+  }
+}
+
+// -------------------------------------------------------------
+// WhatsApp Notification Modal Controller
+// -------------------------------------------------------------
+function openWhatsAppModalForStudy(studyId) {
+  const study = state.worklistQueue.find(s => s.id === studyId);
+  if (!study) {
+    showToast('Study not found for WhatsApp dispatch.');
+    return;
+  }
+
+  state.activeWhatsAppStudy = study;
+
+  const modal = document.getElementById('whatsappModal');
+  const phoneInput = document.getElementById('waRecipientPhone');
+  const patientInfo = document.getElementById('waPatientInfo');
+  const studyInfo = document.getElementById('waStudyInfo');
+  const preview = document.getElementById('waMessagePreview');
+  const directLink = document.getElementById('waDirectReportLink');
+
+  if (phoneInput) phoneInput.value = (study.patient_phone || '').replace(/\D/g, '').slice(-10) || '9876543210';
+  if (patientInfo) patientInfo.textContent = `Patient: ${study.patient_name} (${study.age_gender}) • UHID: ${study.uhid}`;
+  if (studyInfo) studyInfo.textContent = `Study: ${study.modality} — ${study.study_name} • Dr: ${study.referring_doctor}`;
+  if (directLink) directLink.href = `/report/view/${study.id}`;
+
+  const reportUrl = `${window.location.origin}/report/view/${study.id}`;
+  const summarySnippet = study.patient_summary || 'Diagnostic evaluation completed. Official report signed by Consultant Radiologist.';
+
+  if (preview) {
+    preview.textContent = 
+`🏥 DEPARTMENT OF RADIOLOGY & IMAGING
+OFFICIAL MEDICAL REPORT NOTIFICATION
+━━━━━━━━━━━━━━━━━━━━━━
+👤 Patient Name: ${study.patient_name} (${study.age_gender})
+🆔 Patient UHID: ${study.uhid}
+📋 Modality & Study: ${study.modality} — ${study.study_name}
+👨‍⚕️ Referring Clinician: ${study.referring_doctor}
+━━━━━━━━━━━━━━━━━━━━━━
+📋 CLINICAL IMPRESSION / PATIENT GUIDE:
+${summarySnippet}
+
+🔗 View & Download Official Signed Report:
+${reportUrl}
+━━━━━━━━━━━━━━━━━━━━━━
+This is an official digitally signed diagnostic imaging report. Please present this link to your consulting physician.`;
+  }
+
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeWhatsAppModal() {
+  const modal = document.getElementById('whatsappModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function executeWhatsAppDispatch() {
+  const study = state.activeWhatsAppStudy;
+  if (!study) {
+    showToast('No active study selected for WhatsApp dispatch.');
+    return;
+  }
+
+  const phoneInput = document.getElementById('waRecipientPhone');
+  const customPhone = phoneInput ? phoneInput.value.trim() : study.patient_phone;
+
+  const btn = document.getElementById('btnDispatchWA');
+  if (btn) btn.disabled = true;
+
+  try {
+    const payload = {
+      recipient_type: 'both',
+      custom_phone: customPhone,
+      base_url: window.location.origin
+    };
+
+    const res = await fetch(`/api/worklist/${study.id}/send-whatsapp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'WhatsApp dispatch request failed');
+    }
+
+    const data = await res.json();
+    closeWhatsAppModal();
+
+    // Open WhatsApp Web Link in new tab
+    if (data.whatsapp_web_url) {
+      window.open(data.whatsapp_web_url, '_blank');
+      showToast('📲 Official WhatsApp link generated! Opening WhatsApp...');
+    } else {
+      showToast('📲 WhatsApp notification dispatched via Green-API!');
+    }
+
+    // Refresh status
+    await fetchWorklistQueue();
+
+  } catch (err) {
+    console.error('WhatsApp dispatch error:', err);
+    showToast(`WhatsApp dispatch failed: ${err.message}`);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }

@@ -119,6 +119,11 @@
         </span>
       </div>
 
+      <button id="btnToggleWorklist" onclick="toggleWorklistDrawer()" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-md shadow-emerald-500/20 transition" title="Live Teleradiology Worklist (Alt + W)">
+        <span>📋</span> Worklist (Alt+W)
+        <span id="headerQueueBadge" class="px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-bold">5</span>
+      </button>
+
       <button onclick="openHandbookModal()" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold shadow-md shadow-cyan-500/20 transition">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
         📖 Nuclear Handbook
@@ -145,6 +150,47 @@
       </button>
     </div>
   </header>
+
+  <!-- STEP 3: TOP KPI & SLA RIBBON -->
+  <div id="kpiSlaRibbon" class="bg-pacs-950/95 border-b border-pacs-850 px-5 py-2 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0 shadow-inner">
+    <div class="flex items-center flex-wrap gap-3.5">
+      <div class="flex items-center gap-1.5 font-semibold text-rose-300 bg-rose-950/60 px-2.5 py-1 rounded-lg border border-rose-800/80">
+        <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+        <span class="text-[10px] uppercase tracking-wider text-rose-300 font-bold">STAT Pending:</span>
+        <span id="kpiStatPending" class="font-bold font-mono text-white text-xs">1</span>
+      </div>
+      <div class="flex items-center gap-1.5 font-semibold text-amber-300 bg-amber-950/40 px-2.5 py-1 rounded-lg border border-amber-800/70">
+        <span class="text-[10px] uppercase tracking-wider text-amber-400 font-bold">⏳ Queue Pending:</span>
+        <span id="kpiQueuePending" class="font-bold font-mono text-white text-xs">5</span>
+      </div>
+      <div class="flex items-center gap-1.5 font-semibold text-emerald-300 bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-800/70">
+        <span class="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">✅ Signed Today:</span>
+        <span id="kpiSignedToday" class="font-bold font-mono text-white text-xs">0</span>
+      </div>
+      <div class="flex items-center gap-1.5 font-semibold text-cyan-300 bg-cyan-950/40 px-2.5 py-1 rounded-lg border border-cyan-800/70">
+        <span class="text-[10px] uppercase tracking-wider text-cyan-400 font-bold">⚡ Avg TAT:</span>
+        <span id="kpiAvgTat" class="font-bold font-mono text-white text-xs">14.5m</span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Auto-advance toggle -->
+      <label class="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300 select-none hover:text-white" title="Automatically load next pending patient upon signing">
+        <input type="checkbox" id="chkAutoAdvance" checked class="accent-emerald-500 rounded cursor-pointer" />
+        <span class="font-medium">Auto-advance on Sign</span>
+      </label>
+
+      <!-- Add Patient button -->
+      <button onclick="openAddPatientModal()" class="px-3 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-[11px] border border-emerald-500/60 flex items-center gap-1 transition active:scale-95 shadow-sm">
+        <span>➕</span> Add Patient
+      </button>
+
+      <!-- Toggle Worklist Drawer button -->
+      <button onclick="toggleWorklistDrawer()" class="px-3 py-1 rounded-lg bg-pacs-800 hover:bg-pacs-700 text-cyan-300 font-semibold text-[11px] border border-pacs-700 flex items-center gap-1 transition">
+        <span>📋</span> View Queue
+      </button>
+    </div>
+  </div>
 
   <!-- PRINT-ONLY CLINICAL LETTERHEAD -->
   <div class="print-hospital-header">
@@ -441,6 +487,10 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
             ✨ AI Auto-Format (Gemini)
           </button>
+          <button id="btnSignAndNext" onclick="signAndAutoAdvance()" class="px-5 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold tracking-wide shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition transform active:scale-95 border border-emerald-400/40" title="Sign Report, Record TAT SLA, and Auto-Advance to Next Patient (Ctrl + Shift + S)">
+            <span>✅</span>
+            <span>Sign & Next Patient (Ctrl+Shift+S)</span>
+          </button>
           <button id="btnCopyForRIS" onclick="copyCleanReportForRIS()" class="px-4 py-2.5 rounded-lg bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 border border-slate-600 text-xs font-bold text-white flex items-center gap-2 transition shadow-md hover:border-cyan-500/50" title="1-Click Universal Copy for RIS / PACS / Word (Ctrl + Shift + C)">
             <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
             📋 Copy for RIS / Word (Ctrl+Shift+C)
@@ -497,6 +547,61 @@
   <!-- TOAST NOTIFICATION -->
   <div id="toastNotification" class="fixed bottom-6 right-6 bg-slate-900 border border-cyan-500/50 text-white px-4 py-2.5 rounded-lg text-xs font-semibold shadow-2xl transition-all duration-300 opacity-0 pointer-events-none translate-y-3 z-50">
     Notification Message
+  </div>
+
+  <!-- STEP 3: TELERADIOLOGY WORKLIST QUEUE DRAWER (Alt + W) -->
+  <div id="worklistDrawer" class="fixed inset-y-0 left-0 w-[460px] max-w-[95vw] bg-pacs-900 border-r border-pacs-800 shadow-2xl z-40 transform -translate-x-full transition-transform duration-300 flex flex-col">
+    <!-- Drawer Header -->
+    <div class="h-14 border-b border-pacs-800 px-5 flex items-center justify-between bg-pacs-950 shrink-0">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-emerald-600 to-teal-600 flex items-center justify-center text-white text-sm shadow-md">
+          📋
+        </div>
+        <div>
+          <h2 class="text-xs font-bold text-white tracking-wide">Live Teleradiology Worklist</h2>
+          <p class="text-[10px] text-emerald-400 font-mono">STAT-Prioritized Queue • Real-Time TAT</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openAddPatientModal()" class="px-2.5 py-1 rounded bg-emerald-700/80 hover:bg-emerald-600 text-white text-[10px] font-bold transition flex items-center gap-1 shadow-sm">
+          <span>➕</span> Add
+        </button>
+        <button onclick="toggleWorklistDrawer()" class="text-slate-400 hover:text-white p-1 rounded transition" title="Close Drawer (Alt + W)">
+          ✕
+        </button>
+      </div>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="p-3 bg-pacs-950/70 border-b border-pacs-850 space-y-2 shrink-0">
+      <div class="relative">
+        <input type="text" id="worklistSearch" oninput="filterWorklistCards()" placeholder="Search patient name, UHID, modality, doctor..." class="w-full bg-pacs-900 border border-pacs-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white outline-none focus:border-emerald-500 transition placeholder-slate-500" />
+        <span class="absolute left-2.5 top-2 text-slate-500 text-xs">🔍</span>
+      </div>
+      <div class="flex items-center gap-1.5 text-[10px]" id="worklistFilterChips">
+        <button onclick="setWorklistFilter('ALL')" id="filterAll" class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold transition">All</button>
+        <button onclick="setWorklistFilter('STAT')" id="filterSTAT" class="px-2 py-0.5 rounded bg-pacs-900 text-rose-300 border border-rose-900/60 hover:bg-rose-950 transition font-medium">🚨 STAT</button>
+        <button onclick="setWorklistFilter('URGENT')" id="filterURGENT" class="px-2 py-0.5 rounded bg-pacs-900 text-amber-300 border border-amber-900/60 hover:bg-amber-950 transition font-medium">⚡ Urgent</button>
+        <button onclick="setWorklistFilter('ROUTINE')" id="filterROUTINE" class="px-2 py-0.5 rounded bg-pacs-900 text-slate-300 border border-slate-700 hover:bg-slate-800 transition font-medium">Routine</button>
+        <button onclick="setWorklistFilter('PENDING')" id="filterPENDING" class="px-2 py-0.5 rounded bg-pacs-900 text-cyan-300 border border-cyan-900/60 hover:bg-cyan-950 transition font-medium">⏳ Pending</button>
+      </div>
+    </div>
+
+    <!-- Scrollable Patient Cards Container -->
+    <div class="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs" id="worklistCardsContainer">
+      <div class="text-center py-10 text-slate-500 text-xs">
+        <div class="animate-spin inline-block w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full mb-2"></div>
+        <p>Loading clinical worklist queue...</p>
+      </div>
+    </div>
+
+    <!-- Drawer Footer Quick Stats -->
+    <div class="h-10 border-t border-pacs-850 px-4 bg-pacs-950/80 flex items-center justify-between text-[10px] text-slate-400 font-mono shrink-0">
+      <span>Auto-refresh: 15s</span>
+      <button onclick="fetchWorklistQueue()" class="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1">
+        <span>🔄</span> Refresh Queue
+      </button>
+    </div>
   </div>
 
   <!-- RADONE AI CLINICAL COLLABORATOR DRAWER (Alt + C) -->
@@ -839,6 +944,144 @@
         <button onclick="acceptEditsAndPrint()" class="px-5 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-600/25">
           Accept All & Print
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: ADD PATIENT TO QUEUE MODAL -->
+  <div id="addPatientModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-pacs-900 border border-pacs-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col animate-scaleUp">
+      <div class="h-14 border-b border-pacs-800 px-6 flex items-center justify-between bg-pacs-950">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">➕</span>
+          <div>
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Add Patient to Teleradiology Queue</h2>
+            <p class="text-[10px] text-emerald-400 font-mono">Auto-SLA Assignment • Priority Queuing</p>
+          </div>
+        </div>
+        <button onclick="closeAddPatientModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition">✕</button>
+      </div>
+
+      <form onsubmit="handleAddPatientSubmit(event)" class="p-6 space-y-4 text-xs text-slate-300">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Patient Name *</label>
+            <input type="text" id="newPatientName" required placeholder="e.g. Ramesh Kumar" class="w-full bg-pacs-950 border border-pacs-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Age / Gender *</label>
+            <input type="text" id="newPatientAgeGender" required placeholder="e.g. 45Y / Male" class="w-full bg-pacs-950 border border-pacs-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Phone Number (WhatsApp) *</label>
+            <input type="text" id="newPatientPhone" required placeholder="10-digit mobile" value="9876543210" class="w-full bg-pacs-950 border border-pacs-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-500 font-mono" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Patient UHID (Optional)</label>
+            <input type="text" id="newPatientUHID" placeholder="Auto-generated if blank" class="w-full bg-pacs-950 border border-pacs-800 rounded-lg px-3 py-2 text-cyan-400 outline-none focus:border-cyan-500 font-mono" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Priority Level *</label>
+            <select id="newPatientPriority" class="w-full bg-pacs-950 border border-pacs-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-500 font-semibold">
+              <option value="ROUTINE">ROUTINE (Standard SLA)</option>
+              <option value="URGENT">⚡ URGENT (Elevated Priority)</option>
+              <option value="STAT">🚨 STAT (50% SLA Window)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Modality *</label>
+            <select id="newPatientModality" onchange="onNewModalityChange()" class="w-full bg-pacs-950 border border-pacs-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-500">
+              <option value="CT">CT Scan</option>
+              <option value="USG">Ultrasound (USG)</option>
+              <option value="MRI">MRI Scan</option>
+              <option value="PET-CT">PET-CT</option>
+              <option value="SPECT">SPECT / Gamma Camera</option>
+              <option value="X-RAY">X-Ray (Radiography)</option>
+              <option value="THERANOSTICS">Theranostics</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Referring Doctor</label>
+            <input type="text" id="newPatientDoctor" value="Dr. Self-Referred / Duty Clinician" class="w-full bg-pacs-950 border border-pacs-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Modality Template *</label>
+            <select id="newPatientTemplateKey" class="w-full bg-pacs-950 border border-pacs-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-500">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Clinical History / Indication *</label>
+          <textarea id="newPatientHistory" required rows="2" placeholder="Clinical history, symptoms, rule-out indications..." class="w-full bg-pacs-950 border border-pacs-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-500"></textarea>
+        </div>
+
+        <div class="border-t border-pacs-800 pt-4 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeAddPatientModal()" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-lg shadow-emerald-600/30 active:scale-95">
+            Enqueue Study
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- STEP 3: WHATSAPP DISPATCH MODAL -->
+  <div id="whatsappModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-pacs-900 border border-emerald-600/60 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col animate-scaleUp">
+      <div class="h-14 border-b border-pacs-800 px-6 flex items-center justify-between bg-pacs-950">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">📲</span>
+          <div>
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Send Report via WhatsApp</h2>
+            <p class="text-[10px] text-emerald-400 font-mono">Instant Dispatch • Official Verified Link</p>
+          </div>
+        </div>
+        <button onclick="closeWhatsAppModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition">✕</button>
+      </div>
+
+      <div class="p-6 space-y-4 text-xs text-slate-300">
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Recipient Mobile Number *</label>
+          <div class="flex items-center gap-2">
+            <span class="px-3 py-2 bg-pacs-950 border border-pacs-800 rounded-lg text-slate-400 font-mono text-xs">+91</span>
+            <input type="text" id="waRecipientPhone" class="flex-1 bg-pacs-950 border border-pacs-800 rounded-lg px-3 py-2 text-white font-mono text-xs outline-none focus:border-emerald-500" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Patient Details</label>
+          <div class="p-3 bg-pacs-950 rounded-lg border border-pacs-800/80 font-mono text-[11px] space-y-1">
+            <div id="waPatientInfo" class="text-slate-200">Patient: Loading...</div>
+            <div id="waStudyInfo" class="text-cyan-400">Study: Loading...</div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Message Preview</label>
+          <div id="waMessagePreview" class="p-3 bg-pacs-950 rounded-lg border border-pacs-800/80 text-[10px] text-slate-300 max-h-36 overflow-y-auto whitespace-pre-wrap leading-relaxed font-sans shadow-inner">
+            Loading preview...
+          </div>
+        </div>
+
+        <div class="border-t border-pacs-800 pt-4 flex items-center justify-between gap-3">
+          <a id="waDirectReportLink" href="#" target="_blank" class="text-[11px] text-cyan-400 hover:underline">
+            🔗 Open Web Report
+          </a>
+          <button onclick="executeWhatsAppDispatch()" id="btnDispatchWA" class="px-5 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition shadow-lg shadow-emerald-600/30 flex items-center gap-1.5 active:scale-95">
+            <span>🚀</span> Open in WhatsApp
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -19,7 +19,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from pydantic import BaseModel
 
 from backend.radiology_engine import RadiologyEngine, TEMPLATES
@@ -43,6 +43,12 @@ from backend.database import (
 from backend.db_service import DatabaseService
 from backend.smart_structurer import SmartStructurer
 from backend.clinical_collaborator_service import ClinicalCollaboratorService, CollaboratorRequest, CollaboratorResponse
+from backend.worklist_service import (
+    WorklistService,
+    CreateStudyRequest,
+    UpdateStudyStatusRequest,
+    SendWhatsAppRequest
+)
 
 # Zero-PHI Production Logger (HIPAA/DISHA compliant)
 logger = logging.getLogger("somatiq.production")
@@ -541,6 +547,64 @@ def delete_single_report(report_id: int):
     if not ok:
         raise HTTPException(status_code=404, detail="Report not found")
     return {"status": "success", "deleted_id": report_id}
+
+# -------------------------------------------------------------
+# STEP 3: TELERADIOLOGY WORKLIST, SLA & WHATSAPP ENDPOINTS
+# -------------------------------------------------------------
+@app.get("/api/worklist")
+def get_worklist_endpoint():
+    """
+    Live Teleradiology Worklist Queue sorted strictly by:
+    1. STAT first -> URGENT -> ROUTINE
+    2. Oldest created_at first (FIFO within priority)
+    Includes live turnaround stats and SLA targets.
+    """
+    return WorklistService.get_sorted_worklist()
+
+
+@app.post("/api/worklist")
+def create_worklist_study_endpoint(req: CreateStudyRequest):
+    """Adds a new patient study to the teleradiology queue with auto-computed SLA."""
+    study = WorklistService.create_study(req)
+    return {"status": "success", "study": study.model_dump()}
+
+
+@app.patch("/api/worklist/{study_id}/status")
+def update_worklist_status_endpoint(study_id: str, req: UpdateStudyStatusRequest):
+    """Updates study status, records signed_at timestamp, and saves report drafts."""
+    updated = WorklistService.update_study_status(study_id, req)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Study not found in worklist")
+    return {"status": "success", "study": updated.model_dump()}
+
+
+@app.post("/api/worklist/{study_id}/send-whatsapp")
+def send_whatsapp_endpoint(study_id: str, req: SendWhatsAppRequest):
+    """
+    Dispatches official medical report notification via Green-API (if configured)
+    and generates an instant pre-formatted WhatsApp Web deep link fallback.
+    """
+    try:
+        res = WorklistService.dispatch_whatsapp(study_id, req)
+        return res
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        logger.error(f"WhatsApp dispatch failure: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to dispatch WhatsApp: {str(e)}")
+
+
+@app.get("/report/view/{study_id}", response_class=HTMLResponse)
+def public_report_view_endpoint(study_id: str):
+    """
+    Renders public shareable medical report in official hospital letterhead format
+    with verified digital signature badge and patient health guide summary.
+    """
+    study = WorklistService.get_study_by_id(study_id)
+    if not study:
+        raise HTTPException(status_code=404, detail="Medical study report not found")
+    html_content = WorklistService.generate_public_report_html(study)
+    return HTMLResponse(content=html_content)
 
 # WebSocket Endpoint for Live Dictation Streaming (Production Hardened)
 @app.websocket("/ws/dictate")
