@@ -1,0 +1,44 @@
+{
+  "custom_rules": [
+    {
+      "pattern": "daughter knock",
+      "replacement": "DOTANOC",
+      "category": "PET-CT"
+    },
+    {
+      "pattern": "daughter tate",
+      "replacement": "DOTATATE",
+      "category": "PET-CT"
+    },
+    {
+      "pattern": "plasma pet",
+      "replacement": "PSMA PET-CT",
+      "category": "PET-CT"
+    },
+    {
+      "pattern": "plural fusion",
+      "replacement": "pleural effusion",
+      "category": "Radiology"
+    },
+    {
+      "pattern": "coal lithiasis",
+      "replacement": "cholelithiasis",
+      "category": "Radiology"
+    },
+    {
+      "pattern": "sestamibi scan test",
+      "replacement": "99mTc-Sestamibi Scan",
+      "category": "SPECT"
+    }
+  ],
+  "hotwords": [
+    "DOTANOC",
+    "DOTATATE",
+    "PSMA-avid",
+    "FDG-avid",
+    "SUVmax",
+    "pleural effusion",
+    "cholelithiasis",
+    "99mTc-Sestamibi Scan"
+  ]
+}

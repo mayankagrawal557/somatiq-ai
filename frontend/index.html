@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Somatiq AI - Radiology Voice Dictation Assistant (V1)</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            pacs: {
+              950: '#0b0f17', // Deep PACS Obsidian
+              900: '#111827', // Card Background
+              850: '#151e2e', // Elevated Border
+              800: '#1f2937', // Borders
+              700: '#374151',
+              400: '#9ca3af',
+              cyan: '#06b6d4',
+              accent: '#38bdf8'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/print.css" />
+
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Waveform canvas */
+    #waveformCanvas {
+      width: 100%;
+      height: 48px;
+    }
+    /* Ghost text indicator */
+    .ghost-text {
+      color: #38bdf8;
+      opacity: 0.75;
+      font-style: italic;
+      animation: pulse 1.5s infinite;
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #111827;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4b5563;
+    }
+  </style>
+</head>
+<body class="bg-pacs-950 text-slate-100 h-screen w-screen overflow-hidden flex flex-col select-none">
+
+  <!-- TOP PACS NAVIGATION & STATUS BAR -->
+  <header class="h-14 bg-pacs-900 border-b border-pacs-850 px-5 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-sm font-bold tracking-wide text-white flex items-center gap-2">
+          Somatiq AI <span class="text-xs px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 font-mono">VOICE V1</span>
+        </h1>
+        <p class="text-[10px] text-slate-400">Radiology Voice Dictation Assistant</p>
+      </div>
+    </div>
+
+    <!-- Engine Mode Toggle & Audio Status -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 text-xs bg-pacs-950 border border-pacs-800 px-3 py-1.5 rounded-md">
+        <span class="text-slate-400">Engine:</span>
+        <select id="selectSttEngine" class="bg-transparent text-cyan-400 font-semibold outline-none cursor-pointer">
+          <option value="dual" class="bg-pacs-900 text-white">Dual Mode (WebSocket + Web Speech)</option>
+          <option value="local" class="bg-pacs-900 text-white">Local Faster-Whisper</option>
+          <option value="cloud" class="bg-pacs-900 text-white">Cloud Groq / Gemini Fallback</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500" id="wsStatusDot"></span>
+        <span class="text-xs font-mono text-slate-300" id="wsStatusText">WS Live</span>
+      </div>
+
+      <!-- Live Biasing & Correction Pipeline Badges -->
+      <div class="flex items-center gap-2 text-[10px] font-mono">
+        <span class="px-2 py-1 rounded bg-cyan-950/80 border border-cyan-800 text-cyan-400" id="method1Badge">
+          ⚡ Method 1: Biasing ON
+        </span>
+        <span class="px-2 py-1 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-400" id="pass1Badge">
+          Pass-1 Phonetic: &lt;5ms
+        </span>
+        <span class="px-2 py-1 rounded bg-purple-950/80 border border-purple-800 text-purple-300" id="pass2Badge">
+          Pass-2 Gemini Flash: ON
+        </span>
+      </div>
+
+      <button onclick="openHandbookModal()" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold shadow-md shadow-cyan-500/20 transition">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        📖 Nuclear Handbook
+      </button>
+
+      <button onclick="toggleTrainVocabDrawer()" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-semibold shadow-md shadow-orange-500/20 transition">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        🎯 Train Vocabulary
+      </button>
+
+      <button onclick="window.print()" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-pacs-800 hover:bg-pacs-700 text-slate-200 transition">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+        Print / PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- PRINT-ONLY CLINICAL LETTERHEAD -->
+  <div class="print-hospital-header">
+    <h1>DEPARTMENT OF RADIOLOGY & IMAGING</h1>
+    <p>Comprehensive Diagnostic Healthcare Services • Certified Quality Reporting</p>
+  </div>
+
+  <!-- MAIN PACS SPLIT WORKSPACE -->
+  <div class="flex-1 flex overflow-hidden">
+    
+    <!-- LEFT PANEL: VOICE CONTROLS & COMMANDS (W-1/3) -->
+    <aside class="w-96 bg-pacs-900 border-r border-pacs-850 p-5 flex flex-col gap-4 overflow-y-auto shrink-0 left-panel">
+      
+      <!-- MICROPHONE PULSE CARD -->
+      <div class="bg-pacs-950 border border-pacs-800 rounded-xl p-4 flex flex-col items-center justify-center gap-3 relative shadow-inner">
+        <button id="btnMicToggle" onclick="toggleDictation()" class="w-20 h-20 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white flex items-center justify-center shadow-lg shadow-cyan-500/25 transition-all transform active:scale-95 group relative">
+          <span id="micPulseRing" class="absolute inset-0 rounded-full border-2 border-cyan-400 opacity-0 pointer-events-none"></span>
+          <svg id="micIcon" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+          </svg>
+        </button>
+
+        <!-- Status & Timer -->
+        <div class="text-center">
+          <div class="flex items-center justify-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-slate-500" id="micStatusDot"></span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-300" id="micStatusText">Click to Dictate</span>
+          </div>
+          <span class="text-xs font-mono text-cyan-400 mt-1 block" id="recTimer">00:00</span>
+        </div>
+
+        <!-- Real-Time Waveform Visualizer -->
+        <div class="w-full bg-pacs-900/60 rounded-md p-1 border border-pacs-800/80">
+          <canvas id="waveformCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- TEMPLATE & MODALITY SELECTOR -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Modality Template</label>
+        <select id="selectTemplate" onchange="onTemplateSelect()" class="w-full bg-pacs-950 border border-pacs-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-cyan-500 transition">
+          <optgroup label="☢️ Category 1: PET-CT Scans" class="bg-pacs-900 font-bold text-cyan-400">
+            <option value="petct_fdg_whole_body" selected class="text-white font-normal">1. Whole Body FDG PET-CT</option>
+            <option value="petct_psma" class="text-white font-normal">2. PSMA PET-CT (68Ga / 18F-PSMA)</option>
+            <option value="petct_dotanoc" class="text-white font-normal">3. DOTANOC / DOTATATE PET-CT</option>
+            <option value="petct_brain" class="text-white font-normal">4. Brain PET-CT (Dementia/Epilepsy)</option>
+            <option value="petct_cardiac" class="text-white font-normal">5. Cardiac PET-CT (Viability)</option>
+          </optgroup>
+
+          <optgroup label="📷 Category 2: Gamma Camera / SPECT Scans" class="bg-pacs-900 font-bold text-amber-400">
+            <option value="spect_bone_scan" class="text-white font-normal">6. Bone Scan (99mTc-MDP Whole Body/SPECT)</option>
+            <option value="spect_renal_dtpa" class="text-white font-normal">7. Renal Scan - DTPA (Dynamic/GFR)</option>
+            <option value="spect_renal_dmsa" class="text-white font-normal">8. Renal Scan - DMSA (Static Cortical)</option>
+            <option value="spect_thyroid" class="text-white font-normal">9. Thyroid & Parathyroid (Tc-99m / MIBI)</option>
+            <option value="spect_cardiac_perfusion" class="text-white font-normal">10. Myocardial Perfusion SPECT (Stress/Rest)</option>
+            <option value="spect_lung_vq" class="text-white font-normal">11. Lung Perfusion (V/Q Scan - 99mTc-MAA)</option>
+            <option value="spect_hida" class="text-white font-normal">12. HIDA Scan (Hepatobiliary Scintigraphy)</option>
+            <option value="spect_brain" class="text-white font-normal">13. Brain SPECT (Perfusion - HMPAO/ECD)</option>
+          </optgroup>
+
+          <optgroup label="💉 Category 3: Therapeutic Nuclear Medicine (Theranostics)" class="bg-pacs-900 font-bold text-emerald-400">
+            <option value="thera_radioiodine_i131" class="text-white font-normal">14. Radioiodine Therapy (I-131 Thyroid/Ablation)</option>
+            <option value="thera_lu177_psma" class="text-white font-normal">15. Lu-177 PSMA Therapy (Prostate Cancer)</option>
+            <option value="thera_lu177_dotatate" class="text-white font-normal">16. Lu-177 DOTATATE Therapy (PRRT NET)</option>
+            <option value="thera_ac225_psma" class="text-white font-normal">17. Ac-225 PSMA Targeted Alpha Therapy</option>
+            <option value="thera_bone_pain_palliation" class="text-white font-normal">18. Bone Pain Palliation (Samarium-153/Sr-89)</option>
+            <option value="thera_radiosynovectomy" class="text-white font-normal">19. Radiosynovectomy (Y-90 / Rh-186 Joint)</option>
+          </optgroup>
+
+          <optgroup label="🩻 Standard Diagnostic Radiology" class="bg-pacs-900 font-bold text-slate-400">
+            <option value="ct_brain" class="text-white font-normal">CT Brain Plain / Non-Contrast</option>
+            <option value="ct_chest" class="text-white font-normal">CT Chest / HRCT Thorax</option>
+            <option value="mri_brain" class="text-white font-normal">MRI Brain Multi-sequence</option>
+            <option value="mri_lumbar_spine" class="text-white font-normal">MRI Lumbar Spine</option>
+            <option value="chest_xray" class="text-white font-normal">Chest X-Ray PA View</option>
+            <option value="usg_abdomen" class="text-white font-normal">Ultrasound Whole Abdomen</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <!-- AUDIO FILE UPLOAD ALTERNATIVE -->
+      <div class="flex items-center justify-between bg-pacs-950/60 border border-pacs-800 rounded-lg p-2.5">
+        <label for="audioFileInput" class="text-xs text-cyan-400 hover:text-cyan-300 font-medium cursor-pointer flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          Upload Audio File (.wav/.mp3)
+        </label>
+        <input type="file" id="audioFileInput" accept="audio/*" class="hidden" onchange="handleAudioUpload(event)" />
+        <span id="uploadFileName" class="text-[10px] text-slate-400 truncate max-w-[120px]"></span>
+      </div>
+
+      <!-- QUICK REFERENCE: VOICE COMMANDS & MACROS -->
+      <div class="flex-1 bg-pacs-950 border border-pacs-800 rounded-xl p-3.5 flex flex-col gap-2 overflow-hidden shadow-inner">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+          <span>Active Voice Commands</span>
+          <span class="text-cyan-400 font-mono text-[10px]">Real-time</span>
+        </span>
+        <div class="overflow-y-auto space-y-1.5 pr-1 text-[11px]">
+          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
+            <span class="text-amber-300 font-mono">"period" / "full stop"</span>
+            <span class="text-slate-400">Inserts '.'</span>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
+            <span class="text-amber-300 font-mono">"comma"</span>
+            <span class="text-slate-400">Inserts ','</span>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
+            <span class="text-amber-300 font-mono">"next line" / "new line"</span>
+            <span class="text-slate-400">Line break</span>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
+            <span class="text-amber-300 font-mono">"heading findings"</span>
+            <span class="text-cyan-400 font-semibold">FINDINGS header</span>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
+            <span class="text-amber-300 font-mono">"heading impression"</span>
+            <span class="text-cyan-400 font-semibold">IMPRESSION header</span>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
+            <span class="text-emerald-400 font-mono">"normal liver"</span>
+            <span class="text-slate-300">Macro expansion</span>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
+            <span class="text-emerald-400 font-mono">"normal kidneys"</span>
+            <span class="text-slate-300">Macro expansion</span>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
+            <span class="text-emerald-400 font-mono">"normal brain"</span>
+            <span class="text-slate-300">Macro expansion</span>
+          </div>
+          <div class="flex justify-between items-center py-1">
+            <span class="text-rose-400 font-mono">"clear last sentence"</span>
+            <span class="text-slate-300">Deletes last sentence</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIVE CORRECTION LOG FEED -->
+      <div class="bg-pacs-950 border border-pacs-800 rounded-xl p-3 flex flex-col gap-2 shadow-inner max-h-40 overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+            Live ASR Correction Feed
+          </span>
+          <button onclick="clearCorrectionFeed()" class="text-[10px] text-slate-500 hover:text-slate-300">Clear</button>
+        </div>
+        <div id="correctionLogFeed" class="overflow-y-auto space-y-1 text-[11px] font-mono pr-1 max-h-28">
+          <p class="text-slate-600 italic text-[10px]">Listening for medical speech...</p>
+        </div>
+      </div>
+
+      <!-- QUICK ADD CUSTOM RULE CARD -->
+      <div class="bg-pacs-950/80 border border-pacs-800 rounded-xl p-3 flex flex-col gap-2 shadow-inner">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center justify-between">
+          <span>➕ Add Pronunciation Rule</span>
+          <span class="text-[10px] text-slate-500">Instant</span>
+        </span>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <input type="text" id="quickRulePattern" placeholder='Heard as: "plasma pet"' class="bg-pacs-900 border border-pacs-800 rounded px-2 py-1 text-white text-[11px] outline-none" />
+          <input type="text" id="quickRuleReplacement" placeholder='Correct: "PSMA PET-CT"' class="bg-pacs-900 border border-pacs-800 rounded px-2 py-1 text-white text-[11px] outline-none" />
+        </div>
+        <button onclick="submitQuickCustomRule()" class="w-full py-1 rounded bg-amber-600/80 hover:bg-amber-500 text-white text-[11px] font-semibold transition">
+          Save Rule (Zero Restart)
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- RIGHT PANEL: EDITABLE MEDICAL REPORT WORKSPACE (FLEX-1) -->
+    <main class="flex-1 bg-pacs-950 p-5 flex flex-col gap-4 overflow-hidden report-workspace-card">
+
+      <!-- PATIENT METADATA HEADER BAR -->
+      <div class="bg-pacs-900 border border-pacs-850 rounded-xl p-3 grid grid-cols-5 gap-3 patient-meta-grid">
+        <div class="meta-item">
+          <label class="text-[10px] uppercase font-bold text-slate-400 block">Patient Name</label>
+          <input type="text" id="patientName" value="Ramesh Kumar" class="bg-transparent text-xs font-semibold text-white outline-none w-full" />
+        </div>
+        <div class="meta-item">
+          <label class="text-[10px] uppercase font-bold text-slate-400 block">Patient UHID</label>
+          <input type="text" id="patientUHID" value="SYN-849201" class="bg-transparent text-xs font-mono text-cyan-400 outline-none w-full" />
+        </div>
+        <div class="meta-item">
+          <label class="text-[10px] uppercase font-bold text-slate-400 block">Age / Sex</label>
+          <input type="text" id="patientAgeSex" value="48Y / Male" class="bg-transparent text-xs font-semibold text-white outline-none w-full" />
+        </div>
+        <div class="meta-item">
+          <label class="text-[10px] uppercase font-bold text-slate-400 block">Modality</label>
+          <input type="text" id="patientModality" value="CT Scan" class="bg-transparent text-xs font-semibold text-white outline-none w-full" readonly />
+        </div>
+        <div class="meta-item">
+          <label class="text-[10px] uppercase font-bold text-slate-400 block">Study Date</label>
+          <span class="text-xs font-mono text-slate-300" id="studyDateText"></span>
+        </div>
+      </div>
+
+      <!-- CLINICAL QUALITY & SAFETY FLAGS BANNER (Handbook Boundaries) -->
+      <div id="safetyFlagsContainer" class="hidden bg-slate-900/90 border border-amber-600/60 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-lg transition-all duration-200">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          <span class="font-bold text-amber-300 uppercase tracking-wide text-[11px]">Clinical Safety Checks:</span>
+          <div id="safetyBadgesList" class="flex flex-wrap items-center gap-1.5 font-mono text-[11px]"></div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] text-slate-400">Never silently altered • Clinician sign-off required</span>
+          <button onclick="dismissSafetyFlags()" class="text-slate-400 hover:text-white text-xs px-1.5 py-0.5 rounded hover:bg-slate-800">✕</button>
+        </div>
+      </div>
+
+      <!-- RICH-TEXT EDITOR CONTAINER -->
+      <div class="flex-1 bg-pacs-900 border border-pacs-850 rounded-xl flex flex-col overflow-hidden shadow-2xl relative">
+        
+        <!-- EDITOR FORMATTING TOOLBAR -->
+        <div class="h-10 bg-pacs-850 border-b border-pacs-800 px-4 flex items-center justify-between editor-toolbar">
+          <div class="flex items-center gap-1">
+            <button onclick="formatDoc('bold')" class="p-1.5 rounded hover:bg-pacs-700 text-slate-300 hover:text-white" title="Bold">
+              <strong>B</strong>
+            </button>
+            <button onclick="formatDoc('italic')" class="p-1.5 rounded hover:bg-pacs-700 text-slate-300 hover:text-white italic" title="Italic">
+              <em>I</em>
+            </button>
+            <button onclick="formatDoc('underline')" class="p-1.5 rounded hover:bg-pacs-700 text-slate-300 hover:text-white underline" title="Underline">
+              <u>U</u>
+            </button>
+            <span class="w-px h-4 bg-pacs-700 mx-1"></span>
+            <button onclick="insertHeader('FINDINGS')" class="px-2 py-0.5 rounded text-xs hover:bg-pacs-700 text-cyan-400 font-semibold" title="Insert Findings Section">
+              + Findings
+            </button>
+            <button onclick="insertHeader('IMPRESSION')" class="px-2 py-0.5 rounded text-xs hover:bg-pacs-700 text-amber-400 font-semibold" title="Insert Impression Section">
+              + Impression
+            </button>
+            <span class="w-px h-4 bg-pacs-700 mx-1"></span>
+            <button onclick="formatDoc('insertUnorderedList')" class="p-1.5 rounded hover:bg-pacs-700 text-slate-300" title="Bulleted List">
+              • List
+            </button>
+            <button onclick="formatDoc('undo')" class="p-1.5 rounded hover:bg-pacs-700 text-slate-300" title="Undo">
+              ↶
+            </button>
+            <button onclick="formatDoc('redo')" class="p-1.5 rounded hover:bg-pacs-700 text-slate-300" title="Redo">
+              ↷
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] text-slate-400" id="wordCount">Words: 0</span>
+          </div>
+        </div>
+
+        <!-- CONTENTEDITABLE RICH TEXT MEDICAL REPORT AREA -->
+        <div id="richEditor" contenteditable="true" class="flex-1 p-6 overflow-y-auto text-sm text-slate-100 outline-none leading-relaxed rich-editor-content" placeholder="Click mic to dictate findings or select a template above..."></div>
+
+        <!-- LIVE GHOST-TEXT PREVIEW BAR -->
+        <div id="ghostBar" class="h-8 bg-pacs-950/80 border-t border-pacs-800/80 px-4 flex items-center text-xs text-cyan-400 font-mono truncate ghost-cursor">
+          <span class="text-slate-500 mr-2">LIVE DICTATION:</span>
+          <span id="ghostText" class="ghost-text">Listening...</span>
+        </div>
+      </div>
+
+      <!-- BOTTOM ACTION BAR -->
+      <div class="flex items-center justify-between editor-actions-bar">
+        <div class="flex items-center gap-3">
+          <button onclick="triggerAIStructuring()" class="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold tracking-wide shadow-lg shadow-cyan-600/30 flex items-center gap-2 transition transform active:scale-95">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            ✨ AI Auto-Format (Gemini)
+          </button>
+          <button onclick="copyReportText()" class="px-4 py-2.5 rounded-lg bg-pacs-900 hover:bg-pacs-800 border border-pacs-800 text-xs font-semibold text-slate-200 flex items-center gap-2 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+            Copy Text (RIS/PACS)
+          </button>
+          <button onclick="saveReportDraft()" class="px-4 py-2.5 rounded-lg bg-pacs-900 hover:bg-pacs-800 border border-pacs-800 text-xs font-semibold text-emerald-400 flex items-center gap-2 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            Save Draft (SQLite)
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="clearEditor()" class="px-3 py-2 text-xs text-rose-400 hover:text-rose-300 font-medium">
+            Clear
+          </button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- PRINT SIGNATURE FOOTER -->
+  <div class="print-signature-footer">
+    <div>
+      <p class="text-xs">Report verified and electronically authorized.</p>
+    </div>
+    <div class="signature-block">
+      <div class="doc-title">Dr. Senior Radiologist, MD, DNB</div>
+      <div class="doc-sub">Consultant Radiologist & Imaging Specialist</div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastNotification" class="fixed bottom-6 right-6 bg-slate-900 border border-cyan-500/50 text-white px-4 py-2.5 rounded-lg text-xs font-semibold shadow-2xl transition-all duration-300 opacity-0 pointer-events-none translate-y-3 z-50">
+    Notification Message
+  </div>
+
+  <!-- LAYER 3: DOCTOR'S TRAIN VOCABULARY DRAWER -->
+  <div id="trainVocabDrawer" class="fixed inset-y-0 right-0 w-96 bg-pacs-900 border-l border-pacs-800 shadow-2xl z-40 transform translate-x-full transition-transform duration-300 flex flex-col">
+    <!-- Drawer Header -->
+    <div class="h-14 border-b border-pacs-800 px-5 flex items-center justify-between bg-pacs-950">
+      <div class="flex items-center gap-2">
+        <span class="text-amber-400 text-lg">🎯</span>
+        <h2 class="text-sm font-bold text-white tracking-wide">Train Medical Vocabulary</h2>
+      </div>
+      <button onclick="toggleTrainVocabDrawer()" class="text-slate-400 hover:text-white p-1 rounded">
+        ✕
+      </button>
+    </div>
+
+    <!-- Drawer Body -->
+    <div class="p-5 flex-1 overflow-y-auto space-y-5 text-xs">
+      
+      <!-- Instructions Banner -->
+      <div class="bg-amber-950/40 border border-amber-800/60 rounded-lg p-3 text-amber-200/90 leading-relaxed">
+        <p class="font-semibold text-amber-300 mb-1">Acoustic Sound-Alike Adaptation:</p>
+        Teach the system words it commonly mishears (e.g. <em>"plural fusion"</em> → <strong>"pleural effusion"</strong>). The replacement rule is applied in real time with &lt;50ms latency.
+      </div>
+
+      <!-- Add New Word Form -->
+      <div class="bg-pacs-950 border border-pacs-800 rounded-xl p-4 space-y-3 shadow-inner">
+        <h3 class="font-bold text-slate-200 text-xs uppercase tracking-wider">Add Custom Radiology Word</h3>
+        
+        <div>
+          <label class="block text-slate-400 text-[10px] font-bold uppercase mb-1">Correct Medical Term *</label>
+          <input type="text" id="trainCorrectTerm" placeholder="e.g. Hepatosplenomegaly, Cholelithiasis" class="w-full bg-pacs-900 border border-pacs-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-500" />
+        </div>
+
+        <div>
+          <label class="block text-slate-400 text-[10px] font-bold uppercase mb-1">How STT Currently Mishears It (Sound-Alike)</label>
+          <div class="flex gap-2">
+            <input type="text" id="trainMisheardTerm" placeholder="e.g. hepato spleno megaly, coal lithiasis" class="flex-1 bg-pacs-900 border border-pacs-800 rounded-lg px-3 py-2 text-white outline-none focus:border-cyan-500" />
+            <button onclick="recordMisheardSample()" id="btnRecordMisheard" class="px-2.5 py-2 bg-pacs-800 hover:bg-pacs-700 text-cyan-400 rounded-lg" title="Speak to capture pronunciation">
+              🎤
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 text-[10px] font-bold uppercase mb-1">Modality Association</label>
+          <select id="trainModality" class="w-full bg-pacs-900 border border-pacs-800 rounded-lg px-3 py-2 text-white outline-none">
+            <option value="all">All Modalities</option>
+            <option value="usg_abdomen">Ultrasound (USG)</option>
+            <option value="ct_brain">CT Brain</option>
+            <option value="ct_chest">CT Chest / HRCT</option>
+            <option value="mri_spine">MRI Spine</option>
+            <option value="petct_whole_body">PET-CT</option>
+          </select>
+        </div>
+
+        <button onclick="submitTrainWord()" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold tracking-wide shadow-md shadow-cyan-600/30 transition">
+          + Save to Active Vocabulary
+        </button>
+      </div>
+
+      <!-- Live Doctor-Trained Words Catalog -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-bold text-slate-300 text-xs uppercase tracking-wider">Trained Custom Lexicon</h3>
+          <span class="text-[10px] text-cyan-400 font-mono" id="trainedWordsCount">0 words</span>
+        </div>
+        <div id="trainedWordsList" class="space-y-2">
+          <p class="text-slate-500 italic">No custom words trained yet. Add your first word above.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- NUCLEAR MEDICINE HANDBOOK VOCABULARY MODAL -->
+  <div id="handbookModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-pacs-900 border border-pacs-800 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="h-14 border-b border-pacs-800 px-6 flex items-center justify-between bg-pacs-950 shrink-0">
+        <div class="flex items-center gap-3">
+          <span class="text-xl">📖</span>
+          <div>
+            <h2 class="text-sm font-bold text-white tracking-wide">Nuclear Medicine Terminology Handbook</h2>
+            <p class="text-[10px] text-cyan-400 font-mono">Standard Domain Vocabulary Pack • Version 1.0 (18 Oct 2026)</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <a href="/api/handbook/vocabulary/csv" download="nuclear_medicine_handbook_vocab.csv" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-950 border border-emerald-800 text-emerald-400 hover:bg-emerald-900 transition flex items-center gap-1.5 font-semibold">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Download CSV
+          </a>
+          <button onclick="closeHandbookModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Safety Notice Strip -->
+      <div class="bg-amber-950/40 border-b border-amber-900/60 px-6 py-2.5 text-[11px] text-amber-200/90 flex items-center justify-between shrink-0">
+        <span><strong>Safety Boundary:</strong> This is a terminology and language resource, not a clinical protocol. Preserves dictated terms, flags uncertainty, and never invents clinical findings.</span>
+      </div>
+
+      <!-- Tab Navigation & Search Bar -->
+      <div class="border-b border-pacs-800 px-6 py-2.5 flex items-center justify-between bg-pacs-950/60 gap-4 shrink-0">
+        <div class="flex items-center gap-2 text-xs font-semibold" id="handbookTabs">
+          <button onclick="switchHandbookTab('pet_ct')" id="tab_pet_ct" class="px-3 py-1.5 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-800">
+            PET/CT
+          </button>
+          <button onclick="switchHandbookTab('gamma_camera_spect')" id="tab_gamma_camera_spect" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white">
+            Gamma Camera / SPECT
+          </button>
+          <button onclick="switchHandbookTab('therapeutic_theranostics')" id="tab_therapeutic_theranostics" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white">
+            Theranostics
+          </button>
+          <button onclick="switchHandbookTab('high_risk_confusables')" id="tab_high_risk_confusables" class="px-3 py-1.5 rounded-lg text-amber-400 hover:text-amber-300">
+            ⚠️ Confusables
+          </button>
+          <button onclick="switchHandbookTab('abbreviations_and_units')" id="tab_abbreviations_and_units" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white">
+            Abbreviations & Units
+          </button>
+        </div>
+        <input type="text" id="handbookSearch" oninput="filterHandbookTerms()" placeholder="Search terms, isotopes, definitions..." class="bg-pacs-900 border border-pacs-800 rounded-lg px-3 py-1 text-xs text-white outline-none focus:border-cyan-500 w-64" />
+      </div>
+
+      <!-- Terms Table / Grid -->
+      <div class="p-6 flex-1 overflow-y-auto space-y-3" id="handbookContentArea">
+        <p class="text-slate-500 text-xs">Loading vocabulary handbook...</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

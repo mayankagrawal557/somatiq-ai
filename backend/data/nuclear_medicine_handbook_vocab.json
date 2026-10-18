@@ -1,0 +1,932 @@
+{
+  "handbook_metadata": {
+    "title": "Nuclear Medicine Terminology Handbook",
+    "version": "1.0",
+    "date": "18 October 2026",
+    "description": "Domain vocabulary pack for training and structuring a Radiology & Nuclear Medicine Voice Dictation Assistant.",
+    "safety_boundary": "This is a terminology and language resource, not a clinical protocol or a substitute for a qualified nuclear medicine physician. The assistant must preserve what the clinician dictated, flag uncertainty, and never invent findings, diagnoses, administered activities, or treatment instructions.",
+    "categories_covered": [
+      "PET/CT",
+      "Gamma Camera / SPECT",
+      "Therapeutic Nuclear Medicine / Theranostics",
+      "Anatomy, Distribution and Reporting Language",
+      "Common Abbreviations and Units",
+      "Speech Recognition High-Risk Confusables"
+    ]
+  },
+  "sections": {
+    "pet_ct": [
+      {
+        "term": "PET",
+        "category": "PET/CT",
+        "definition": "Positron emission tomography; functional imaging based on detection of paired photons produced after positron annihilation.",
+        "sound_alikes": ["pet scan", "p e t"],
+        "safe_usage": "Functional imaging method; never substitute with SPECT or CT."
+      },
+      {
+        "term": "CT",
+        "category": "PET/CT",
+        "definition": "Computed tomography; cross-sectional anatomical imaging.",
+        "sound_alikes": ["c t", "cat scan"],
+        "safe_usage": "Anatomical imaging; preserve dictated modality."
+      },
+      {
+        "term": "PET/CT",
+        "category": "PET/CT",
+        "definition": "Combined PET and CT examination providing functional and anatomical information.",
+        "sound_alikes": ["pet ct", "pet dash ct", "pet computed tomography"],
+        "safe_usage": "Combined functional and anatomical examination."
+      },
+      {
+        "term": "FDG",
+        "category": "PET/CT",
+        "definition": "Fluorodeoxyglucose, commonly 18F-FDG; a glucose analogue used in many oncologic, inflammatory and other PET studies.",
+        "sound_alikes": ["f d g", "fluoro deoxy glucose"],
+        "safe_usage": "Glucose analogue tracer."
+      },
+      {
+        "term": "18F-FDG",
+        "category": "PET/CT",
+        "definition": "Fluorine-18 fluorodeoxyglucose; pronounce and transcribe isotope and tracer name carefully.",
+        "sound_alikes": ["f 18 fdg", "fluorine 18 fdg", "f-18 fdg", "18 f fdg"],
+        "safe_usage": "Preserve isotope and tracer name carefully. Never confuse with I-131."
+      },
+      {
+        "term": "PSMA PET/CT",
+        "category": "PET/CT",
+        "definition": "PET imaging targeting prostate-specific membrane antigen; tracer choice should be recorded when known.",
+        "sound_alikes": ["plasma pet", "p s m a pet ct", "psma pet scan"],
+        "safe_usage": "Prostate cancer molecular imaging; document specific radiopharmaceutical."
+      },
+      {
+        "term": "68Ga-PSMA",
+        "category": "PET/CT",
+        "definition": "Gallium-68-labelled PSMA radiopharmaceutical family; do not assume a specific compound if not dictated.",
+        "sound_alikes": ["ga 68 psma", "gallium 68 psma", "68 ga psma"],
+        "safe_usage": "Diagnostic PSMA tracer. Never auto-correct to Lu-177 PSMA."
+      },
+      {
+        "term": "18F-PSMA",
+        "category": "PET/CT",
+        "definition": "Fluorine-18-labelled PSMA radiopharmaceutical family; the exact tracer should be documented when available.",
+        "sound_alikes": ["f 18 psma", "fluorine 18 psma", "18 f psma"],
+        "safe_usage": "Exact tracer compound should be documented when available."
+      },
+      {
+        "term": "DOTATATE",
+        "category": "PET/CT",
+        "definition": "Somatostatin-receptor-targeting radiopharmaceutical used in selected neuroendocrine tumour imaging.",
+        "sound_alikes": ["daughter tate", "dota tate", "dot a tate"],
+        "safe_usage": "Distinct tracer targeting SSTR. Not interchangeable with DOTATOC."
+      },
+      {
+        "term": "DOTATOC",
+        "category": "PET/CT",
+        "definition": "Somatostatin-receptor-targeting radiopharmaceutical used in selected neuroendocrine tumour imaging.",
+        "sound_alikes": ["daughter knock", "dota toc", "dot a toc"],
+        "safe_usage": "Distinct tracer targeting SSTR. Not interchangeable with DOTATATE."
+      },
+      {
+        "term": "68Ga-DOTATATE",
+        "category": "PET/CT",
+        "definition": "Gallium-68-labelled somatostatin receptor PET tracer.",
+        "sound_alikes": ["ga 68 dotatate", "gallium 68 dotatate"],
+        "safe_usage": "Somatostatin receptor diagnostic imaging."
+      },
+      {
+        "term": "Amyloid PET",
+        "category": "PET/CT",
+        "definition": "PET imaging using an amyloid-targeting tracer in appropriate clinical contexts.",
+        "sound_alikes": ["amyloid pet scan", "amyloid imaging"],
+        "safe_usage": "Cerebral amyloid assessment in neurocognitive disorders."
+      },
+      {
+        "term": "Brain FDG PET",
+        "category": "PET/CT",
+        "definition": "FDG PET study focused on cerebral glucose metabolism.",
+        "sound_alikes": ["brain pet", "cerebral pet", "fdg brain pet"],
+        "safe_usage": "Assessment of regional cerebral metabolic activity."
+      },
+      {
+        "term": "Whole-body PET/CT",
+        "category": "PET/CT",
+        "definition": "PET/CT acquisition covering a specified body range; exact coverage should be documented.",
+        "sound_alikes": ["whole body pet ct", "whole body pet", "skull base to mid thighs"],
+        "safe_usage": "Document anatomical coverage (e.g. skull base to mid-thighs, or vertex to toes)."
+      },
+      {
+        "term": "Low-dose CT",
+        "category": "PET/CT",
+        "definition": "CT acquired primarily for attenuation correction and anatomical localization; not necessarily equivalent to a diagnostic-quality CT.",
+        "sound_alikes": ["low dose ct", "non contrast low dose ct"],
+        "safe_usage": "Acquired for attenuation correction and localization; do not overcall diagnostic CT parameters."
+      },
+      {
+        "term": "Diagnostic CT",
+        "category": "PET/CT",
+        "definition": "CT acquisition intended to provide diagnostic anatomical detail, with protocol-specific parameters.",
+        "sound_alikes": ["diagnostic ct", "contrast enhanced ct", "full dose ct"],
+        "safe_usage": "Contrast-enhanced diagnostic study; report protocol parameters."
+      },
+      {
+        "term": "Injection-to-scan interval",
+        "category": "PET/CT",
+        "definition": "Time between radiopharmaceutical administration and image acquisition.",
+        "sound_alikes": ["injection to scan interval", "uptake interval"],
+        "safe_usage": "Record exact time interval in minutes if dictated."
+      },
+      {
+        "term": "Uptake time",
+        "category": "PET/CT",
+        "definition": "Time allowed for tracer distribution before imaging; tracer- and protocol-dependent.",
+        "sound_alikes": ["uptake time", "incubation time"],
+        "safe_usage": "Tracer- and protocol-dependent rest time (typically 50-70 mins for 18F-FDG)."
+      },
+      {
+        "term": "Blood glucose",
+        "category": "PET/CT",
+        "definition": "Blood glucose level that may be relevant to FDG study preparation and interpretation.",
+        "sound_alikes": ["blood sugar", "fasting blood glucose", "serum glucose"],
+        "safe_usage": "Preserve exact numeric glucose value and units (mg/dL or mmol/L)."
+      },
+      {
+        "term": "Brown fat",
+        "category": "PET/CT",
+        "definition": "Metabolically active adipose tissue that can show FDG uptake and may complicate interpretation.",
+        "sound_alikes": ["brown adipose tissue", "brown fat uptake"],
+        "safe_usage": "Benign physiological variant; do not confuse with malignant nodal uptake."
+      },
+      {
+        "term": "Muscle uptake",
+        "category": "PET/CT",
+        "definition": "FDG activity in skeletal muscle, which can be affected by recent activity, tension or other factors.",
+        "sound_alikes": ["skeletal muscle uptake", "muscular activity"],
+        "safe_usage": "Physiological uptake influenced by muscular exertion or tension."
+      },
+      {
+        "term": "Urinary excretion",
+        "category": "PET/CT",
+        "definition": "Tracer excretion through the urinary tract; commonly relevant to renal/bladder activity for certain tracers.",
+        "sound_alikes": ["urinary excretion", "urinary clearance"],
+        "safe_usage": "Expected clearance route for FDG and PSMA; note potential masking of pelvic lesions."
+      },
+      {
+        "term": "Liver background",
+        "category": "PET/CT",
+        "definition": "Reference uptake in the liver, often used in qualitative PET assessment when appropriate.",
+        "sound_alikes": ["hepatic background", "liver reference uptake"],
+        "safe_usage": "Standard qualitative reference comparator in PET reporting."
+      },
+      {
+        "term": "Mediastinal blood-pool activity",
+        "category": "PET/CT",
+        "definition": "Blood-pool activity in the mediastinum, sometimes used as a qualitative reference.",
+        "sound_alikes": ["blood pool", "mediastinal blood pool", "aortic blood pool"],
+        "safe_usage": "Reference comparator for visual Deauville scoring and PERCIST."
+      },
+      {
+        "term": "Deauville score",
+        "category": "PET/CT",
+        "definition": "A five-point visual scale used in specific lymphoma response-assessment settings; use only when appropriate and reported.",
+        "sound_alikes": ["devil score", "doe ville score", "deauville criteria"],
+        "safe_usage": "Use only 1 to 5 visual scale for lymphoma response assessment when dictated."
+      },
+      {
+        "term": "PERCIST",
+        "category": "PET/CT",
+        "definition": "PET Response Criteria in Solid Tumors; a framework for metabolic response assessment in selected settings.",
+        "sound_alikes": ["per sist", "p e r c i s t"],
+        "safe_usage": "Standardized criteria for metabolic response; do not confuse with RECIST."
+      },
+      {
+        "term": "Metabolic response",
+        "category": "PET/CT",
+        "definition": "Change in tracer-related metabolic activity across examinations, assessed using the applicable framework.",
+        "sound_alikes": ["metabolic response", "treatment response"],
+        "safe_usage": "Compare against appropriate baseline scans using consistent framework."
+      },
+      {
+        "term": "Progressive metabolic disease",
+        "category": "PET/CT",
+        "definition": "A response-assessment category used in applicable criteria; should not be assigned automatically without required data and physician review.",
+        "sound_alikes": ["pmd", "progressive disease"],
+        "safe_usage": "Never assign automatically; requires physician review and quantitative thresholds."
+      },
+      {
+        "term": "Metabolic tumour volume (MTV)",
+        "category": "PET/CT",
+        "definition": "Volume of tumour tissue defined using a specified PET segmentation method.",
+        "sound_alikes": ["m t v", "metabolic tumor volume"],
+        "safe_usage": "Quantitative PET volumetric metric expressed in cm3."
+      },
+      {
+        "term": "Total lesion glycolysis (TLG)",
+        "category": "PET/CT",
+        "definition": "A semi-quantitative measure combining metabolic tumour volume and mean uptake in FDG PET.",
+        "sound_alikes": ["t l g", "total lesion glycolysis"],
+        "safe_usage": "Product of MTV and SUVmean."
+      },
+      {
+        "term": "Lymph node",
+        "category": "PET/CT",
+        "definition": "A lymphatic structure; document anatomical station, size and tracer uptake where available.",
+        "sound_alikes": ["lymph node", "nodal station"],
+        "safe_usage": "Anatomical structure; never confuse phonetically with 'lung nodule'."
+      },
+      {
+        "term": "Primary lesion",
+        "category": "PET/CT",
+        "definition": "The lesion considered to be the origin of a disease, as established clinically.",
+        "sound_alikes": ["primary tumor", "index lesion"],
+        "safe_usage": "Origin lesion of malignancy as established clinically."
+      },
+      {
+        "term": "Metastatic lesion",
+        "category": "PET/CT",
+        "definition": "A lesion interpreted as secondary spread; the assistant must not infer this from uptake alone.",
+        "sound_alikes": ["metastasis", "distant spread", "secondary lesion"],
+        "safe_usage": "Must not infer metastasis from uptake alone without clinical context."
+      },
+      {
+        "term": "False-positive uptake",
+        "category": "PET/CT",
+        "definition": "Uptake that appears suspicious but is not due to the disease being investigated.",
+        "sound_alikes": ["false positive", "benign avid lesion"],
+        "safe_usage": "Tracer concentration caused by inflammation, infection, or healing."
+      },
+      {
+        "term": "False-negative study",
+        "category": "PET/CT",
+        "definition": "A study that does not demonstrate disease that is actually present; detectability depends on tracer and other factors.",
+        "sound_alikes": ["false negative", "non avid disease"],
+        "safe_usage": "Underlying disease undetected due to size, motion, or low tracer avidity."
+      }
+    ],
+    "gamma_camera_spect": [
+      {
+        "term": "Gamma camera",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Detector system used to image gamma photons emitted by administered radiopharmaceuticals.",
+        "sound_alikes": ["gamma camera", "anger camera"],
+        "safe_usage": "Standard nuclear detector system."
+      },
+      {
+        "term": "Planar scintigraphy",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Two-dimensional nuclear medicine imaging.",
+        "sound_alikes": ["planar imaging", "planar scan"],
+        "safe_usage": "2D projection scintigraphy."
+      },
+      {
+        "term": "Scintigraphy",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Imaging using a radiopharmaceutical and detection of emitted radiation.",
+        "sound_alikes": ["scinti graphy", "scintigraphic imaging"],
+        "safe_usage": "General nuclear imaging term."
+      },
+      {
+        "term": "SPECT",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Single-photon emission computed tomography; tomographic imaging using gamma-emitting radiopharmaceuticals.",
+        "sound_alikes": ["spec", "spect scan", "s p e c t"],
+        "safe_usage": "Tomographic gamma imaging. Never substitute with PET."
+      },
+      {
+        "term": "SPECT/CT",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Combined SPECT functional imaging and CT anatomical localization/attenuation correction.",
+        "sound_alikes": ["spect ct", "spect slash ct"],
+        "safe_usage": "Hybrid functional and anatomical localization."
+      },
+      {
+        "term": "Tc-99m",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Technetium-99m, a widely used diagnostic radionuclide.",
+        "sound_alikes": ["tc 99m", "technetium 99m", "99m tc", "tc ninety nine m"],
+        "safe_usage": "Diagnostic gamma-emitting radioisotope (140 keV, 6-hour half-life)."
+      },
+      {
+        "term": "Methylene diphosphonate (MDP)",
+        "category": "Gamma Camera / SPECT",
+        "definition": "A bone-imaging radiopharmaceutical compound often labelled with Tc-99m.",
+        "sound_alikes": ["m d p", "methylene diphosphonate"],
+        "safe_usage": "Skeletal imaging compound."
+      },
+      {
+        "term": "99mTc-MDP bone scan",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Bone scintigraphy using technetium-99m MDP.",
+        "sound_alikes": ["technetium ninety nine mdp bone scan", "tc 99m mdp bone scan"],
+        "safe_usage": "Normalize isotope spelling only if clear. Preserve bilateral and focal notes."
+      },
+      {
+        "term": "HDP / HMDP",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Diphosphonate compounds used for bone scintigraphy; exact agent should be recorded as dictated.",
+        "sound_alikes": ["h d p", "h m d p", "hydroxymethylene diphosphonate"],
+        "safe_usage": "Record exact bone-seeking agent as dictated."
+      },
+      {
+        "term": "DMSA",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Dimercaptosuccinic acid; a radiopharmaceutical used in selected renal cortical imaging studies, commonly labelled with Tc-99m.",
+        "sound_alikes": ["d m s a", "dmsa scan"],
+        "safe_usage": "Renal cortical morphology and relative split renal function."
+      },
+      {
+        "term": "DTPA",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Diethylenetriaminepentaacetic acid; used in selected renal and other studies depending on radiolabel and protocol.",
+        "sound_alikes": ["d t p a", "dtpa scan"],
+        "safe_usage": "Glomerular filtration assessment and dynamic renography."
+      },
+      {
+        "term": "MAG3",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Mercaptoacetyltriglycine; used in renal scintigraphy, commonly labelled with Tc-99m.",
+        "sound_alikes": ["mag three", "m a g 3", "mag 3"],
+        "safe_usage": "Tubular secretion tracer, particularly valuable in impaired renal function."
+      },
+      {
+        "term": "MIBI / sestamibi",
+        "category": "Gamma Camera / SPECT",
+        "definition": "A radiopharmaceutical used in selected myocardial perfusion, parathyroid and other imaging protocols.",
+        "sound_alikes": ["sesta mibi", "sestamibi", "mibi scan"],
+        "safe_usage": "Myocardial perfusion and parathyroid adenoma localization."
+      },
+      {
+        "term": "Pertechnetate",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Tc-99m pertechnetate; used in selected thyroid, salivary and other studies.",
+        "sound_alikes": ["per technetate", "technetium pertechnetate"],
+        "safe_usage": "Thyroid trapping, Meckel diverticulum, and salivary imaging."
+      },
+      {
+        "term": "HIDA scan",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Hepatobiliary scintigraphy using an appropriate iminodiacetic acid radiopharmaceutical.",
+        "sound_alikes": ["hide a scan", "heeda scan", "h i d a scan"],
+        "safe_usage": "Hepatobiliary clearance, acute cholecystitis, and biliary leak evaluation."
+      },
+      {
+        "term": "Myocardial perfusion imaging (MPI)",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Nuclear imaging used to assess myocardial perfusion, often with SPECT or PET.",
+        "sound_alikes": ["m p i", "myocardial perfusion scan", "cardiac perfusion scan"],
+        "safe_usage": "Ischemia and infarction assessment."
+      },
+      {
+        "term": "Stress imaging",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Imaging performed after exercise or pharmacological stress, according to the study protocol.",
+        "sound_alikes": ["stress phase", "stress spect", "post stress imaging"],
+        "safe_usage": "Acquired post-exercise or pharmacological vasodilator/inotropic stress."
+      },
+      {
+        "term": "Rest imaging",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Imaging acquired under resting conditions.",
+        "sound_alikes": ["rest phase", "rest spect", "baseline cardiac imaging"],
+        "safe_usage": "Baseline myocardial perfusion status."
+      },
+      {
+        "term": "Gated SPECT",
+        "category": "Gamma Camera / SPECT",
+        "definition": "SPECT acquisition synchronized with the ECG to assess cardiac function and perfusion.",
+        "sound_alikes": ["gated spect", "ecg gated spect"],
+        "safe_usage": "Simultaneous evaluation of regional wall motion and ejection fraction."
+      },
+      {
+        "term": "Ejection fraction (EF)",
+        "category": "Gamma Camera / SPECT",
+        "definition": "A measure of the fraction of ventricular blood volume ejected per beat; report the measured value and method when provided.",
+        "sound_alikes": ["e f", "lvef", "left ventricular ejection fraction"],
+        "safe_usage": "Preserve explicit percentage (e.g. 58%) and acquisition technique."
+      },
+      {
+        "term": "Renogram",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Dynamic renal scintigraphy used to assess renal perfusion, function and drainage.",
+        "sound_alikes": ["reno gram", "dynamic renogram", "diuretic renogram"],
+        "safe_usage": "Time-activity curves for renal vascular transit, uptake, and clearance."
+      },
+      {
+        "term": "Differential renal function",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Relative contribution of each kidney to total function, estimated using an applicable method.",
+        "sound_alikes": ["split renal function", "differential function", "relative renal function"],
+        "safe_usage": "Record right and left split percentages; verify sum approximates 100% as quality check without altering dictated values."
+      },
+      {
+        "term": "Drainage / washout",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Tracer clearance from a collecting system or organ over time.",
+        "sound_alikes": ["washout phase", "tracer clearance", "t half"],
+        "safe_usage": "Clearance dynamics; note whether response to diuretic (Lasix) is prompt or prolonged."
+      },
+      {
+        "term": "Gastric emptying study",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Nuclear medicine assessment of gastric emptying using a defined meal and protocol.",
+        "sound_alikes": ["gastric emptying", "ges scan", "gastroparesis study"],
+        "safe_usage": "Solid or liquid phase transit percentages at 1, 2, 4 hours."
+      },
+      {
+        "term": "Thyroid uptake scan",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Study assessing thyroid radiotracer uptake and distribution.",
+        "sound_alikes": ["thyroid scan", "thyroid scintigraphy", "pertechnetate uptake"],
+        "safe_usage": "Thyrotoxicosis differential and autonomous nodule evaluation."
+      },
+      {
+        "term": "Parathyroid localization",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Imaging intended to localize suspected abnormal parathyroid tissue in an appropriate clinical setting.",
+        "sound_alikes": ["parathyroid scan", "sestamibi parathyroid"],
+        "safe_usage": "Suspected parathyroid adenoma localization using dual-phase sestamibi."
+      },
+      {
+        "term": "V/Q scan",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Ventilation/perfusion lung scintigraphy; evaluates distribution of ventilation and perfusion.",
+        "sound_alikes": ["v q scan", "v slash q scan", "ventilation perfusion scan"],
+        "safe_usage": "Evaluation of suspected pulmonary embolism."
+      },
+      {
+        "term": "Perfusion defect",
+        "category": "Gamma Camera / SPECT",
+        "definition": "A region with reduced tracer perfusion relative to surrounding or expected tissue.",
+        "sound_alikes": ["perfusion defect", "cold perfusion area"],
+        "safe_usage": "Subsegmental, segmental, or non-segmental perfusion deficit."
+      },
+      {
+        "term": "Ventilation defect",
+        "category": "Gamma Camera / SPECT",
+        "definition": "A region with reduced ventilation tracer distribution.",
+        "sound_alikes": ["ventilation defect", "airway clearance defect"],
+        "safe_usage": "Matched vs mismatched with perfusion defect."
+      },
+      {
+        "term": "Sentinel lymph node",
+        "category": "Gamma Camera / SPECT",
+        "definition": "The first lymph node(s) receiving drainage from a primary site, identified using an appropriate mapping procedure.",
+        "sound_alikes": ["sentinel node", "slnb"],
+        "safe_usage": "First drainage node; document lymphoscintigraphic basin and count rate."
+      },
+      {
+        "term": "Collimator",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Gamma-camera component that helps determine the direction of detected photons.",
+        "sound_alikes": ["collimator", "lehr collimator", "pinhole collimator"],
+        "safe_usage": "LEHR, MEGP, or pinhole beam geometry component."
+      },
+      {
+        "term": "Energy window",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Selected energy range used to accept detected photons.",
+        "sound_alikes": ["photopeak window", "energy window"],
+        "safe_usage": "Centred around photopeak (e.g. 140 keV +/- 10% for Tc-99m)."
+      },
+      {
+        "term": "Count rate / counts",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Measures of detected events; acquisition and interpretation depend on protocol.",
+        "sound_alikes": ["counts per second", "kcounts", "total counts"],
+        "safe_usage": "Raw detected events in planar or SPECT projection."
+      },
+      {
+        "term": "Motion artefact",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Image distortion caused by patient or organ motion.",
+        "sound_alikes": ["motion artifact", "patient movement"],
+        "safe_usage": "Record in technical limitations section."
+      },
+      {
+        "term": "Extravasation",
+        "category": "Gamma Camera / SPECT",
+        "definition": "Leakage of injected radiopharmaceutical into surrounding tissue rather than remaining within the intended vascular route.",
+        "sound_alikes": ["extravasation", "injection site infiltrate", "tissue leakage"],
+        "safe_usage": "Dose infiltration at venous injection site; document dose infiltration impact."
+      }
+    ],
+    "therapeutic_theranostics": [
+      {
+        "term": "Radionuclide therapy",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Treatment using a radiopharmaceutical that delivers radiation to targeted tissues.",
+        "sound_alikes": ["radiopharmaceutical therapy", "targeted radionuclide therapy"],
+        "safe_usage": "Therapeutic administration delivering internal ionizing radiation."
+      },
+      {
+        "term": "Theranostics",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "An approach pairing molecular imaging with a related targeted radionuclide therapy where clinically appropriate.",
+        "sound_alikes": ["theranostics", "theragnostics"],
+        "safe_usage": "Pairing molecular diagnostic imaging with targeted therapeutic radionuclides."
+      },
+      {
+        "term": "I-131 / radioiodine",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Iodine-131, used in selected thyroid-related diagnostic or therapeutic contexts depending on protocol.",
+        "sound_alikes": ["i 131", "iodine 131", "radioactive iodine"],
+        "safe_usage": "Preserve isotope strictly. Never confuse with F-18."
+      },
+      {
+        "term": "Radioiodine therapy",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Therapy using radioactive iodine for selected thyroid conditions under specialist care.",
+        "sound_alikes": ["rai therapy", "radioactive iodine ablation"],
+        "safe_usage": "Thyroid cancer ablation or hyperthyroidism therapy."
+      },
+      {
+        "term": "Lu-177",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Lutetium-177, a therapeutic radionuclide used in selected targeted therapies.",
+        "sound_alikes": ["lu 177", "lutetium 177", "loo 177"],
+        "safe_usage": "Beta-emitting therapeutic radionuclide. Never auto-correct to Ga-68."
+      },
+      {
+        "term": "177Lu-DOTATATE",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Lutetium-177-labelled DOTATATE used for peptide receptor radionuclide therapy in appropriate patients.",
+        "sound_alikes": ["lu 177 dotatate", "lutetium dotatate", "lutathera"],
+        "safe_usage": "Peptide receptor radionuclide therapy agent."
+      },
+      {
+        "term": "PRRT",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Peptide receptor radionuclide therapy; targeted treatment for selected somatostatin-receptor-positive disease.",
+        "sound_alikes": ["p r r t", "peptide receptor therapy"],
+        "safe_usage": "Targeted treatment for neuroendocrine tumours."
+      },
+      {
+        "term": "177Lu-PSMA therapy",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Lutetium-177-labelled PSMA-targeted therapy for selected prostate cancer patients.",
+        "sound_alikes": ["lu 177 psma", "lutetium psma therapy", "pluvicto"],
+        "safe_usage": "Targeted prostate cancer beta-emitter therapy."
+      },
+      {
+        "term": "Y-90",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Yttrium-90, a therapeutic radionuclide used in selected treatments, including certain radioembolization procedures.",
+        "sound_alikes": ["y 90", "yttrium 90", "y-90 microspheres"],
+        "safe_usage": "Pure beta-emitter used in radioembolization and radiosynovectomy."
+      },
+      {
+        "term": "Radioembolization",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Delivery of radioactive microspheres into selected arterial territories, commonly in liver-directed treatment.",
+        "sound_alikes": ["tare", "selective internal radiation therapy", "sirt"],
+        "safe_usage": "Transarterial radioembolization (TARE/SIRT)."
+      },
+      {
+        "term": "Ra-223",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Radium-223, a therapeutic alpha-emitting radionuclide used in a specific clinical setting.",
+        "sound_alikes": ["ra 223", "radium 223", "xofigo"],
+        "safe_usage": "Bone-targeted alpha-emitting therapy for metastatic CRPC."
+      },
+      {
+        "term": "Sr-89",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Strontium-89, a radionuclide historically used for palliation of selected painful bone metastases; current use depends on local practice.",
+        "sound_alikes": ["sr 89", "strontium 89", "metastron"],
+        "safe_usage": "Bone pain palliation beta-emitter."
+      },
+      {
+        "term": "Sm-153",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Samarium-153, a radionuclide used in selected bone-pain palliation settings.",
+        "sound_alikes": ["sm 153", "samarium 153", "quadramet"],
+        "safe_usage": "Bone pain palliation complex (Sm-153 EDTMP)."
+      },
+      {
+        "term": "Alpha emitter",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "A radionuclide that emits alpha particles; examples in therapy include Ac-225 and Ra-223.",
+        "sound_alikes": ["alpha emitter", "alpha particle therapy", "tat"],
+        "safe_usage": "High linear energy transfer (LET) radionuclide."
+      },
+      {
+        "term": "Beta emitter",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "A radionuclide that emits beta particles; examples used in therapy include Lu-177 and Y-90.",
+        "sound_alikes": ["beta emitter", "beta minus radiation"],
+        "safe_usage": "Intermediate range therapeutic emission."
+      },
+      {
+        "term": "Gamma emission",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Emission of gamma photons; may be relevant to imaging or radiation characteristics of a radionuclide.",
+        "sound_alikes": ["gamma ray", "gamma photon"],
+        "safe_usage": "Allows post-therapy imaging and external radiation assessment."
+      },
+      {
+        "term": "Administered activity",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Amount of radioactive decay activity administered, commonly expressed in MBq or GBq; not the same as absorbed dose.",
+        "sound_alikes": ["administered activity", "injected activity", "dose administered"],
+        "safe_usage": "Amount of activity administered (MBq/GBq/mCi); never confuse with absorbed dose (Gy)."
+      },
+      {
+        "term": "Absorbed dose",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Energy deposited per unit mass, measured in gray (Gy).",
+        "sound_alikes": ["absorbed dose", "radiation dose"],
+        "safe_usage": "Energy deposited per mass unit; measured in Gray (Gy)."
+      },
+      {
+        "term": "Activity",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Radioactive decay rate, commonly expressed in becquerels (Bq), MBq or GBq.",
+        "sound_alikes": ["radioactivity", "decay rate"],
+        "safe_usage": "Physical decay rate measured in Bq, MBq, GBq, or mCi."
+      },
+      {
+        "term": "Half-life",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Time required for radioactive activity to decrease by half; distinguish physical, biological and effective half-life.",
+        "sound_alikes": ["half life", "t 1/2"],
+        "safe_usage": "Distinguish physical half-life from biological and effective clearance half-life."
+      },
+      {
+        "term": "Radiation precautions",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Patient-specific safety instructions provided by the treating nuclear medicine team.",
+        "sound_alikes": ["radiation safety precautions", "isolation instructions"],
+        "safe_usage": "Contact distance, hydration, and hygiene protocols."
+      },
+      {
+        "term": "Treatment cycle",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "A planned treatment administration within a course; document cycle number only when stated.",
+        "sound_alikes": ["treatment cycle", "cycle number", "therapy cycle"],
+        "safe_usage": "Document cycle number (e.g. cycle 1, cycle 2) only when explicitly dictated."
+      },
+      {
+        "term": "Post-therapy imaging",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Imaging acquired after therapeutic radiopharmaceutical administration.",
+        "sound_alikes": ["post therapy scan", "bremsstrahlung scan", "post treatment imaging"],
+        "safe_usage": "Acquired at 24h, 48h, or 72h post administration."
+      },
+      {
+        "term": "Treatment response",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Clinical, biochemical or imaging change assessed using the relevant follow-up approach.",
+        "sound_alikes": ["therapy response", "clinical response"],
+        "safe_usage": "Biochemical (e.g. PSA, chromogranin A) or imaging evaluation."
+      },
+      {
+        "term": "Salivary gland toxicity",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Potential adverse effect relevant to certain targeted radionuclide therapies; clinical assessment belongs to the treating team.",
+        "sound_alikes": ["sialadenitis", "salivary toxicity"],
+        "safe_usage": "Dose-limiting risk for PSMA therapies; clinical assessment belongs to physician."
+      },
+      {
+        "term": "Xerostomia",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Dry mouth; may be relevant in selected therapeutic contexts.",
+        "sound_alikes": ["dry mouth", "xerostomia"],
+        "safe_usage": "Symptom of salivary hypofunction following PSMA or I-131 therapies."
+      },
+      {
+        "term": "Nephrotoxicity",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Kidney toxicity; risk and monitoring depend on the specific therapy and patient.",
+        "sound_alikes": ["renal toxicity", "kidney injury"],
+        "safe_usage": "Renal risk factor; requires amino acid co-infusion monitoring."
+      },
+      {
+        "term": "Myelosuppression",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Reduced bone-marrow activity, potentially affecting blood cell counts.",
+        "sound_alikes": ["bone marrow suppression", "cytopenia"],
+        "safe_usage": "Hematologic monitoring for anemia, leukopenia, thrombocytopenia."
+      },
+      {
+        "term": "Dosimetry",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Estimation or measurement of radiation absorbed dose to tissues or organs.",
+        "sound_alikes": ["internal dosimetry", "organ dosimetry"],
+        "safe_usage": "Quantitative absorbed dose estimation (Gy/GBq)."
+      },
+      {
+        "term": "Radiopharmaceutical therapy consent",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Documented informed-consent process handled by the responsible clinical team.",
+        "sound_alikes": ["informed consent", "therapy consent"],
+        "safe_usage": "Formal clinical documentation; assistant must not generate or bypass consent."
+      },
+      {
+        "term": "Release criteria",
+        "category": "Therapeutic Nuclear Medicine / Theranostics",
+        "definition": "Applicable radiation-safety criteria for patient discharge or release, determined by local regulations and the responsible service.",
+        "sound_alikes": ["discharge criteria", "release dose rate"],
+        "safe_usage": "Local radiation regulatory criteria for patient discharge."
+      }
+    ],
+    "high_risk_confusables": [
+      {
+        "pair": "F-18 vs I-131",
+        "category": "Radionuclide Confusable",
+        "danger_type": "Different radionuclides (Diagnostic PET vs Therapeutic/Diagnostic Thyroid)",
+        "safe_usage_guidance": "Preserve the isotope exactly and flag uncertainty. Never auto-convert one to the other."
+      },
+      {
+        "pair": "Ga-68 vs Lu-177",
+        "category": "Radionuclide Confusable",
+        "danger_type": "Diagnostic vs Therapeutic roles (Gallium-68 diagnostic vs Lutetium-177 therapy)",
+        "safe_usage_guidance": "Different radionuclides with commonly different diagnostic/therapeutic roles; never auto-correct one to the other."
+      },
+      {
+        "pair": "DOTATATE vs DOTATOC",
+        "category": "Tracer Confusable",
+        "danger_type": "Distinct tracer compounds targeting SSTR",
+        "safe_usage_guidance": "Distinct tracer names; do not normalize as synonyms."
+      },
+      {
+        "pair": "PSMA vs SSTR",
+        "category": "Target Receptor Confusable",
+        "danger_type": "Different molecular targets (Prostate-specific membrane antigen vs Somatostatin receptor)",
+        "safe_usage_guidance": "Different molecular targets; retain exactly what was dictated."
+      },
+      {
+        "pair": "PET vs SPECT",
+        "category": "Modality Confusable",
+        "danger_type": "Different imaging acquisition methods and physics",
+        "safe_usage_guidance": "Different imaging methods; never substitute one for the other."
+      },
+      {
+        "pair": "CT vs MRI",
+        "category": "Modality Confusable",
+        "danger_type": "Different radiological modalities",
+        "safe_usage_guidance": "Different modalities; preserve the dictated modality."
+      },
+      {
+        "pair": "Right vs left",
+        "category": "Laterality Error",
+        "danger_type": "Critical laterality reversal in paired organs or lymph nodes",
+        "safe_usage_guidance": "Critical laterality error; require explicit confirmation if audio is unclear. Never silently choose left or right."
+      },
+      {
+        "pair": "Positive vs negative",
+        "category": "Negation / Polarity Error",
+        "danger_type": "Complete reversal of diagnostic conclusion",
+        "safe_usage_guidance": "Negation changes meaning; do not infer or silently repair."
+      },
+      {
+        "pair": "No evidence of vs evidence of",
+        "category": "Negation Phrase Error",
+        "danger_type": "Reversal of pathology presence",
+        "safe_usage_guidance": "Negation phrase must be preserved exactly."
+      },
+      {
+        "pair": "Increased vs decreased",
+        "category": "Comparative Uptake Error",
+        "danger_type": "Opposite metabolic trend across scans",
+        "safe_usage_guidance": "Opposite meaning; flag unclear comparative words."
+      },
+      {
+        "pair": "Mild vs moderate vs intense",
+        "category": "Degree Term Modification",
+        "danger_type": "Subjective grading alteration",
+        "safe_usage_guidance": "Degree terms should not be changed by language-model rewriting."
+      },
+      {
+        "pair": "MBq vs GBq",
+        "category": "Activity Unit Factor 1,000 Error",
+        "danger_type": "Magnitude error of 1000x in administered radioactivity",
+        "safe_usage_guidance": "Units differ by a factor of 1,000; never infer or convert without explicit source and validation."
+      },
+      {
+        "pair": "SUVmax vs SUVmean",
+        "category": "Metric Confusable",
+        "danger_type": "Voxel peak uptake vs mean region-of-interest uptake",
+        "safe_usage_guidance": "Different metrics; preserve the reported metric."
+      },
+      {
+        "pair": "Therapy vs diagnostic scan",
+        "category": "Clinical Purpose Confusable",
+        "danger_type": "Misclassifying treatment administration as an imaging scan",
+        "safe_usage_guidance": "Different clinical purposes; do not classify from tracer name alone."
+      },
+      {
+        "pair": "Administered activity vs absorbed dose",
+        "category": "Dosimetry Unit Confusable",
+        "danger_type": "MBq/GBq/mCi vs Gy",
+        "safe_usage_guidance": "Different quantities and units; never treat as interchangeable."
+      },
+      {
+        "pair": "Lymph node vs lung nodule",
+        "category": "Anatomical Structure Confusable",
+        "danger_type": "Lymphatic station vs pulmonary parenchymal nodule",
+        "safe_usage_guidance": "Different anatomical structures; verify when speech is unclear."
+      },
+      {
+        "pair": "Lesion size and decimal values",
+        "category": "Quantitative Accuracy",
+        "danger_type": "Truncated decimal places or altered metric units",
+        "safe_usage_guidance": "Keep units and decimal places; ask for confirmation if uncertain."
+      },
+      {
+        "pair": "Dates and treatment cycles",
+        "category": "Temporal / Cycle Identification",
+        "danger_type": "Hallucinating prior dates or cycle sequences",
+        "safe_usage_guidance": "Do not infer dates or cycle numbers from context without explicit confirmation."
+      }
+    ],
+    "core_and_reporting_language": [
+      {"term": "Nuclear medicine", "category": "Core", "definition": "Medical specialty using radiopharmaceuticals to assess physiology, diagnose disease, and in selected cases deliver targeted therapy."},
+      {"term": "Radiopharmaceutical", "category": "Core", "definition": "A medicinal product containing a radionuclide, used for imaging or therapy."},
+      {"term": "Radionuclide / radioisotope", "category": "Core", "definition": "An unstable nuclide that emits radiation; examples include F-18, Ga-68, Tc-99m, I-123, I-131 and Lu-177."},
+      {"term": "Radiotracer / tracer", "category": "Core", "definition": "A radiopharmaceutical used to trace a biological process or distribution."},
+      {"term": "Uptake", "category": "Core", "definition": "Accumulation of a tracer in a tissue or structure; its significance depends on tracer, physiology and context."},
+      {"term": "Physiological uptake", "category": "Core", "definition": "Expected tracer activity in normal tissues for that specific radiopharmaceutical."},
+      {"term": "Abnormal uptake", "category": "Core", "definition": "Uptake outside an expected pattern; not automatically proof of malignancy."},
+      {"term": "Biodistribution", "category": "Core", "definition": "How a radiopharmaceutical distributes through the body."},
+      {"term": "Radiotracer avidity", "category": "Core", "definition": "Degree to which a lesion or tissue demonstrates uptake of a particular tracer."},
+      {"term": "Hot spot / focus of increased uptake", "category": "Core", "definition": "An area with relatively higher tracer activity; describe location and context rather than assigning a diagnosis automatically."},
+      {"term": "Photopenic defect / cold area", "category": "Core", "definition": "An area with relatively reduced or absent tracer activity."},
+      {"term": "Physiologic variant", "category": "Core", "definition": "A non-pathological variation in tracer distribution or anatomy."},
+      {"term": "Attenuation", "category": "Core", "definition": "Reduction in detected photon intensity as radiation passes through tissue."},
+      {"term": "Attenuation correction (AC)", "category": "Core", "definition": "Correction method used to compensate for photon attenuation, commonly using CT information in PET/CT and SPECT/CT."},
+      {"term": "Partial-volume effect", "category": "Core", "definition": "Underestimation or distortion of activity in small structures due to limited spatial resolution."},
+      {"term": "SUV", "category": "Core", "definition": "Standardized uptake value; a semi-quantitative PET measure whose interpretation depends on acquisition and patient factors."},
+      {"term": "SUVmax", "category": "Core", "definition": "Maximum voxel SUV within a defined region of interest."},
+      {"term": "SUVmean", "category": "Core", "definition": "Mean SUV within a defined region of interest."},
+      {"term": "Region of interest (ROI)", "category": "Core", "definition": "A selected image region used for measurement or analysis."},
+      {"term": "Maximum intensity projection (MIP)", "category": "Core", "definition": "A display that projects the highest voxel value along each viewing ray."},
+      {"term": "Co-registration / fusion", "category": "Core", "definition": "Alignment or combined display of functional and anatomical images."},
+      {"term": "Incidental finding", "category": "Core", "definition": "An observation unrelated to the primary clinical question that may require appropriate review."},
+      {"term": "Correlative imaging", "category": "Core", "definition": "Comparison with another modality, such as diagnostic CT, MRI or ultrasound."},
+      {"term": "Focal", "category": "Reporting Language", "definition": "Limited to a localized area."},
+      {"term": "Diffuse", "category": "Reporting Language", "definition": "Distributed broadly through a tissue or organ."},
+      {"term": "Heterogeneous", "category": "Reporting Language", "definition": "Non-uniform in appearance or tracer distribution."},
+      {"term": "Homogeneous", "category": "Reporting Language", "definition": "Uniform in appearance or tracer distribution."},
+      {"term": "Symmetric / asymmetrical", "category": "Reporting Language", "definition": "Similar on both sides / differing between sides."},
+      {"term": "Physiological distribution", "category": "Reporting Language", "definition": "Expected distribution of a particular tracer under the relevant conditions."},
+      {"term": "Increased radiotracer uptake", "category": "Reporting Language", "definition": "Relatively increased activity; requires context and should not automatically be equated with malignancy."},
+      {"term": "Reduced radiotracer uptake", "category": "Reporting Language", "definition": "Relatively decreased activity."},
+      {"term": "No abnormal focal uptake identified", "category": "Reporting Language", "definition": "A reporting phrase that should only be used when supported by the actual interpreted study."},
+      {"term": "Correlate clinically", "category": "Reporting Language", "definition": "Interpret in the context of symptoms, examination and other clinical information."},
+      {"term": "Correlate with anatomical imaging", "category": "Reporting Language", "definition": "Compare with CT, MRI or another relevant modality."},
+      {"term": "Indeterminate", "category": "Reporting Language", "definition": "Not confidently classifiable based on the available information."},
+      {"term": "Non-specific", "category": "Reporting Language", "definition": "A finding that does not uniquely indicate a particular cause."},
+      {"term": "Interval increase", "category": "Reporting Language", "definition": "Increase compared with a suitable prior examination."},
+      {"term": "Interval decrease", "category": "Reporting Language", "definition": "Decrease compared with a suitable prior examination."},
+      {"term": "Stable", "category": "Reporting Language", "definition": "No meaningful change identified using the applicable comparison."},
+      {"term": "New finding", "category": "Reporting Language", "definition": "A finding not present or not reported on the relevant prior study; comparison must be reliable."},
+      {"term": "Comparison study", "category": "Reporting Language", "definition": "Prior examination used for comparison."},
+      {"term": "Technical limitation", "category": "Reporting Language", "definition": "A factor that limits image quality or interpretation."},
+      {"term": "Limited by motion", "category": "Reporting Language", "definition": "Image interpretation affected by patient or organ motion."},
+      {"term": "No prior study available", "category": "Reporting Language", "definition": "State when no suitable comparison examination is available."},
+      {"term": "Laterality", "category": "Reporting Language", "definition": "Right, left or bilateral; a critical field that must not be guessed."},
+      {"term": "Craniocaudal", "category": "Reporting Language", "definition": "Direction from head toward feet; often used for lesion extent."},
+      {"term": "Axial / sagittal / coronal", "category": "Reporting Language", "definition": "Common anatomical image planes."},
+      {"term": "Lymphadenopathy", "category": "Reporting Language", "definition": "Abnormal enlargement or involvement of lymph nodes; diagnosis depends on context."},
+      {"term": "Osseous", "category": "Reporting Language", "definition": "Relating to bone."},
+      {"term": "Visceral", "category": "Reporting Language", "definition": "Relating to internal organs."},
+      {"term": "Extraosseous", "category": "Reporting Language", "definition": "Outside bone."},
+      {"term": "Intracranial", "category": "Reporting Language", "definition": "Within the skull."},
+      {"term": "Mediastinal", "category": "Reporting Language", "definition": "Relating to the mediastinum."},
+      {"term": "Retroperitoneal", "category": "Reporting Language", "definition": "Located behind the peritoneal cavity."},
+      {"term": "Hepatic", "category": "Reporting Language", "definition": "Relating to the liver."},
+      {"term": "Splenic", "category": "Reporting Language", "definition": "Relating to the spleen."},
+      {"term": "Adrenal", "category": "Reporting Language", "definition": "Relating to the adrenal gland."},
+      {"term": "Renal", "category": "Reporting Language", "definition": "Relating to the kidney."},
+      {"term": "Pelvic", "category": "Reporting Language", "definition": "Relating to the pelvis."}
+    ],
+    "abbreviations_and_units": [
+      {"abbreviation": "AC", "expansion": "Attenuation correction", "usage_note": "Context may have other meanings, expand on first use."},
+      {"abbreviation": "AP", "expansion": "Anteroposterior", "usage_note": "Confirm context because abbreviations can be ambiguous."},
+      {"abbreviation": "CT", "expansion": "Computed tomography", "usage_note": "Standard cross-sectional anatomical imaging."},
+      {"abbreviation": "ECG / EKG", "expansion": "Electrocardiogram", "usage_note": "Cardiac rhythm recording."},
+      {"abbreviation": "FDG", "expansion": "Fluorodeoxyglucose", "usage_note": "Positron tracer glucose analogue."},
+      {"abbreviation": "FOV", "expansion": "Field of view", "usage_note": "Acquisition parameter."},
+      {"abbreviation": "GBq", "expansion": "Gigabecquerel", "usage_note": "Unit of radioactive activity (10^9 Bq). 1 GBq = 1,000 MBq."},
+      {"abbreviation": "Gy", "expansion": "Gray", "usage_note": "Unit of absorbed radiation dose (J/kg)."},
+      {"abbreviation": "keV", "expansion": "Kiloelectronvolt", "usage_note": "Unit of photon energy."},
+      {"abbreviation": "MBq", "expansion": "Megabecquerel", "usage_note": "Unit of radioactive activity (10^6 Bq)."},
+      {"abbreviation": "MIP", "expansion": "Maximum intensity projection", "usage_note": "3D display projection."},
+      {"abbreviation": "MRI", "expansion": "Magnetic resonance imaging", "usage_note": "Non-ionizing multiplanar anatomical imaging."},
+      {"abbreviation": "MPI", "expansion": "Myocardial perfusion imaging", "usage_note": "SPECT or PET cardiac scan."},
+      {"abbreviation": "PET", "expansion": "Positron emission tomography", "usage_note": "Functional nuclear imaging."},
+      {"abbreviation": "PRRT", "expansion": "Peptide receptor radionuclide therapy", "usage_note": "Targeted neuroendocrine therapy."},
+      {"abbreviation": "PSMA", "expansion": "Prostate-specific membrane antigen", "usage_note": "Targeted transmembrane glycoprotein."},
+      {"abbreviation": "ROI", "expansion": "Region of interest", "usage_note": "Quantitative image sampling area."},
+      {"abbreviation": "SPECT", "expansion": "Single-photon emission computed tomography", "usage_note": "Tomographic gamma scintigraphy."},
+      {"abbreviation": "SUV", "expansion": "Standardized uptake value", "usage_note": "Semi-quantitative tissue uptake index."},
+      {"abbreviation": "SUVmax", "expansion": "Maximum standardized uptake value", "usage_note": "Peak voxel activity within ROI."},
+      {"abbreviation": "SUVmean", "expansion": "Mean standardized uptake value", "usage_note": "Average voxel activity within ROI."},
+      {"abbreviation": "V/Q", "expansion": "Ventilation/perfusion", "usage_note": "Pulmonary scintigraphy ratio."},
+      {"abbreviation": "DICOM", "expansion": "Digital Imaging and Communications in Medicine", "usage_note": "Medical image standard."},
+      {"abbreviation": "RIS", "expansion": "Radiology information system", "usage_note": "Radiology workflow informatics system."},
+      {"abbreviation": "PACS", "expansion": "Picture archiving and communication system", "usage_note": "Medical image storage and viewer."},
+      {"abbreviation": "FHIR", "expansion": "Fast Healthcare Interoperability Resources", "usage_note": "Modern healthcare data exchange standard."},
+      {"abbreviation": "HL7", "expansion": "Health Level Seven", "usage_note": "Clinical data interchange standards."}
+    ]
+  }
+}

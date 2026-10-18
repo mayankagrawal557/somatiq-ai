@@ -1,0 +1,154 @@
+/* Medical Report Clean A4 Letterhead Print Styling */
+@media print {
+  /* Hide PACS UI chrome */
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: 'Times New Roman', Times, serif, 'Inter', sans-serif !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .sidebar,
+  .top-header,
+  .left-panel,
+  .editor-toolbar,
+  .editor-actions-bar,
+  .btn,
+  .ghost-cursor,
+  .tab-pane:not(.active),
+  #toastNotification {
+    display: none !important;
+  }
+
+  .app-container,
+  .main-content,
+  .workspace-grid {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .report-workspace-card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Formal Hospital Header */
+  .print-hospital-header {
+    display: block !important;
+    border-bottom: 2px solid #000000;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .print-hospital-header h1 {
+    font-size: 20pt;
+    font-weight: bold;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .print-hospital-header p {
+    font-size: 10pt;
+    margin: 3px 0 0 0;
+    color: #333333;
+  }
+
+  /* Patient Demographics Table */
+  .patient-meta-grid {
+    display: table !important;
+    width: 100% !important;
+    border: 1px solid #333333 !important;
+    background: #fdfdfd !important;
+    margin-bottom: 24px !important;
+    border-collapse: collapse !important;
+  }
+
+  .meta-item {
+    display: table-cell !important;
+    padding: 6px 12px !important;
+    border: 1px solid #cccccc !important;
+    font-size: 10pt !important;
+  }
+
+  .meta-item label {
+    font-weight: bold !important;
+    color: #000000 !important;
+    display: inline-block !important;
+    margin-right: 4px !important;
+  }
+
+  .meta-item input, .meta-item span {
+    border: none !important;
+    background: transparent !important;
+    font-size: 10pt !important;
+    color: #000000 !important;
+    padding: 0 !important;
+  }
+
+  /* Report Body */
+  .rich-editor-content {
+    font-size: 11pt !important;
+    line-height: 1.6 !important;
+    color: #000000 !important;
+    min-height: auto !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  .rich-editor-content h3 {
+    font-size: 12pt !important;
+    font-weight: bold !important;
+    margin-top: 14pt !important;
+    margin-bottom: 4pt !important;
+    text-transform: uppercase !important;
+    border-bottom: 1px solid #cccccc;
+    padding-bottom: 2pt;
+  }
+
+  .rich-editor-content p {
+    margin-bottom: 8pt !important;
+  }
+
+  /* Radiologist Signature Area */
+  .print-signature-footer {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 50pt;
+    page-break-inside: avoid;
+    border-top: 1px solid #333333;
+    padding-top: 10px;
+  }
+
+  .signature-block {
+    text-align: right;
+  }
+
+  .signature-block .doc-title {
+    font-weight: bold;
+    font-size: 11pt;
+  }
+
+  .signature-block .doc-sub {
+    font-size: 9pt;
+    color: #444444;
+  }
+}
+
+/* In-browser preview default for print elements */
+.print-hospital-header,
+.print-signature-footer {
+  display: none;
+}
