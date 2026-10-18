@@ -29,7 +29,8 @@ MODALITY_PROFILES: Dict[str, Dict[str, Any]] = {
             "Deauville score", "PERCIST", "hypermetabolic", "hypometabolic",
             "physiological uptake", "brown fat", "muscle uptake", "urinary excretion",
             "liver background", "mediastinal blood pool", "MTV", "TLG",
-            "skull base to mid thighs"
+            "skull base to mid thighs", "mural thickening", "pericolonic",
+            "pleomorphic adenoma", "adenocarcinoma", "traction bronchiectasis"
         ]
     },
 

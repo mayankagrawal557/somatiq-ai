@@ -181,7 +181,21 @@ SOUND_ALIKE_MAP: Dict[str, str] = {
     "spleno megaly": "splenomegaly",
     "hepato splenomegaly": "hepatosplenomegaly",
     "nephro lithiasis": "nephrolithiasis",
-    "cortico medullary": "corticomedullary"
+    "cortico medullary": "corticomedullary",
+
+    # Oncology & Multi-System PET-CT Clinical Sound-Alikes
+    "moral thickening": "mural thickening",
+    "neural thickening": "mural thickening",
+    "peri colonic": "pericolonic",
+    "peri colonic fat stranding": "pericolonic fat stranding",
+    "play a morphic adenoma": "pleomorphic adenoma",
+    "cleomorphic adenoma": "pleomorphic adenoma",
+    "attraction bronchiectasis": "traction bronchiectasis",
+    "para tracheal": "paratracheal",
+    "sub carinal": "subcarinal",
+    "osteo lytic": "osteolytic",
+    "osteo sclerotic": "osteosclerotic",
+    "adeno carcinoma": "adenocarcinoma"
 }
 
 # Canonical Multi-Syllable Medical Terms from Radiology & Nuclear Medicine Handbook

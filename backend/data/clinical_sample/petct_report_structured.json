@@ -1,0 +1,82 @@
+{
+  "record_id": "PETCT_DEID_0001",
+  "deidentification": {
+    "patient_identifiers_removed": true,
+    "referring_doctor_details_removed": true,
+    "reporting_doctor_details_removed": true,
+    "diagnostic_centre_details_removed": true,
+    "administrative_identifiers_removed": true,
+    "dates_reviewed": true,
+    "dates_retained_for_clinical_context": [
+      "biopsy date: 21/09/26"
+    ],
+    "note": "No patient name, patient ID, visit ID, referring doctor, reporting doctor, centre name, registration number, or scan date is included. The biopsy date is retained as clinical context and should be generalized or removed if the dataset policy requires date minimization."
+  },
+  "study": {
+    "title": "18F-FDG whole body PET/CT",
+    "modality": "PET/CT",
+    "radiopharmaceutical": "18F-FDG"
+  },
+  "clinical_details_and_indication": "Recently diagnosed case of carcinoma ascending colon; biopsy (21/09/26) - suggestive of moderately differentiated adenocarcinoma; previously known case of interstitial lung disease with postural hypotension; Now, FDG PET-CT for disease staging.",
+  "procedure_details": "Whole body images (Vertex to mid-thigh) were acquired in 3-D mode 45-60 min after IV injection of 18F-FDG using a GE Discovery time of flight (TOF) PET-CT scanner with 64 slice cardiac CT. CT scanning was performed using I.V. contrast. No adverse reaction was observed during the scan. Reconstruction of the acquired data was performed to obtain fused PET-CT images in transaxial, coronal and sagittal views. Semi Quantitative analysis of FDG uptake was performed by calculating Standard Uptake Values (SUVmax), which is normalized to body weight expressed in gm/ml.",
+  "comparison": "No previous PET-CT scan for comparison.",
+  "findings": {
+    "general": [
+      "Physiological tracer uptake is noted in brain, myocardium, skeletal muscles and renal cortex with excretion of tracer into the urinary bladder."
+    ],
+    "brain": [
+      "Physiological tracer uptake is noted in the brain parenchyma. No abnormal FDG uptake/SOL noted in the supra and infra-tentorial brain parenchyma.",
+      "Note: All brain metastases may not be apparent on a PET/CT scan and MRI can be performed where clinically indicated."
+    ],
+    "head_and_neck": [
+      "FDG avid few tiny enhancing nodules are noted in the superficial part of left parotid gland (SUVmax- 7.3; measuring ≈0.7 x 0.8 cm) - likely pleomorphic adenoma. suggested follow up.",
+      "No abnormal FDG uptake or focal lesion is noted in the orbit and retro-orbital regions.",
+      "No abnormal FDG avid focal lesion is seen in the paranasal sinuses.",
+      "No obvious FDG avid focal lesion is seen in the nasal & oral cavity, nasopharynx, oropharynx, hypopharynx and supraglottic, glottic and sub-glottic regions of larynx.",
+      "Bilateral retroantral fat space, infratemporal fossa, bilateral parapharyngeal and retropharyngeal regions appear normal.",
+      "No obvious FDG avid lesion is seen in the thyroid, right parotid and submandibular glands.",
+      "No abnormally increased FDG avid enlarged lymph nodes are noted in the bilateral cervical and supraclavicular regions."
+    ],
+    "thorax": [
+      "Low-grade FDG avid diffuse septal thickening with symmetrical peripheral & basal predominant ground glass and reticular interstitial opacities with associated traction bronchiectasis and mild architectural distortion in the bilateral lung parenchyma- likely interstitial lung disease.",
+      "Faintly FDG avid few small lymph nodes are noted in the right upper and lower paratracheal, subcarinal, AP window and bilateral hilar regions - likely inflammatory aetiology.",
+      "No obvious FDG avid focal lesion is seen at the bilateral anterior chest wall.",
+      "No abnormally increased FDG avid enlarged lymph nodes are noted at the bilateral internal mammary and axillary regions.",
+      "Cardiac, paracardiac regions, and pericardium appear normal with no pericardial effusion.",
+      "Trachea, bronchi and esophagus appear unremarkable shows physiological FDG uptake.",
+      "No evidence of pleural effusion/abnormal FDG avid pleural thickening is seen on either side."
+    ],
+    "abdomen_and_pelvis": [
+      "FDG avid irregular circumferential mural thickening (SUVmax- 21.9; thickness ≈2.0 cm; extent ≈4.5 cm) is noted involving the ascending colon. Note is made of mild pericolonic fat stranding. Note is also made of small subcentimetric sized non-FDG avid pericolonic lymph node. Rest of the large bowel loops appears unremarkable.",
+      "Gallbladder appears contracted. Note is made of multiple small hyperdense calculi within the GB lumen - cholelithiasis.",
+      "Liver appears normal in size and position (measuring ≈12.4 cm in CCD). The IHBR and CBD appear normal. No abnormal FDG uptake or focal lesion is noted in the liver parenchyma.",
+      "The spleen, pancreas, bilateral kidneys and bilateral adrenal glands appear normal in size, shape and attenuation pattern with no abnormal FDG uptake or focal lesion is noted.",
+      "The stomach, opacified small bowel and rest of large bowel loops appear normal in caliber and fold pattern shows no abnormally FDG avid focal lesion or thickening.",
+      "Urinary bladder appears normal with no abnormal FDG uptake or focal wall thickening is noted.",
+      "No evidence of free fluid/ascites is seen in the abdominal and pelvic peritoneal cavities.",
+      "Prostate appears normal in size. No abnormal FDG uptake/ focal lesions are noted in the prostatic parenchyma.",
+      "No abnormally increased FDG avid enlarged lymph nodes are noted at the abdominal, retroperitoneal, pelvic and bilateral inguinal regions. Major abdominal vessels appear normal."
+    ],
+    "musculoskeletal": [
+      "Note is made of fracture with callus formation in the right 3rd-6th ribs and left 7th - 9th ribs- likely traumatic.",
+      "Marrow uptake is within normal range in the visualized skeleton. No scan evidence of hypermetabolic osteolytic/osteosclerotic lesion in the visualized skeleton."
+    ]
+  },
+  "impression": [
+    "In a known case of carcinoma ascending colon; FDG PET-CT findings are:",
+    "Metabolically active irregular circumferential mural thickening involving the ascending colon with mild pericolonic fat stranding - suggestive of primary malignant neoplasm.",
+    "Non-FDG avid tiny pericolonic lymph node as described above.",
+    "Metabolically active tiny enhancing nodules in the superficial part of left parotid gland - likely benign (pleomorphic adenoma); follow-up advised.",
+    "Diffuse low-grade FDG avid interstitial lung changes in bilateral lung parenchyma with faintly FDG avid mediastinal/hilar lymph nodes - consistent with interstitial lung disease and reactive/inflammatory changes.",
+    "No scan evidence of distant hypermetabolic metastasis."
+  ],
+  "closing": "Please correlate clinically",
+  "training_metadata": {
+    "source_type": "de-identified clinical report",
+    "task": "structured_report_generation",
+    "verified_audio_transcript_available": false,
+    "synthetic_or_real_audio": "none",
+    "clinical_content_reviewed_by_radiologist": false,
+    "recommended_use": "format/schema example and report-generation reference; not sufficient by itself to train a speech-recognition model"
+  }
+}
