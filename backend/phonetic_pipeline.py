@@ -196,9 +196,12 @@ CANONICAL_MEDICAL_TERMS = [
     "pertechnetate", "sestamibi", "radiosynovectomy", "theranostics",
     "parenchyma", "calvarium", "radiculopathy", "scintigraphy",
     "cholelithiasis", "cholecystitis", "nephrolithiasis", "osteoblastic",
-    "photopenic", "retroperitoneal", "adenocarcinoma", "metastasis",
+    "photopenic", "retroperitoneal", "adenocarcinoma", "metastasis", "metastatic",
     "extravasation", "collimator", "biodistribution", "renogram",
-    "radioembolization", "myelosuppression", "xerostomia", "dosimetry"
+    "radioembolization", "myelosuppression", "xerostomia", "dosimetry",
+    "subcarinal", "gastrohepatic", "supraclavicular", "esophageal",
+    "cardiophrenic", "retrocrural", "mesenteric", "paratracheal",
+    "hypermetabolism", "hypometabolism"
 ]
 
 # High-Risk Pairs that must NEVER be cross-substituted
@@ -344,6 +347,12 @@ class Pass1PhoneticPipeline:
 
             def sub_callback(m):
                 matched = m.group(0).lower()
+                # Prevent double -CT if already followed by -ct or ct
+                end_pos = m.end()
+                trailing = working[end_pos:end_pos+4].lower()
+                if matched in ["fdg pet", "psma pet", "f d g pet", "p s m a pet"] and (trailing.startswith("-ct") or trailing.startswith(" ct")):
+                    return m.group(0)
+
                 repl = active_dict.get(matched)
                 if not repl:
                     for k in sorted_keys:

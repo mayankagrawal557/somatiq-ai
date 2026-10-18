@@ -120,5 +120,20 @@ CLINICAL_MACROS = {
     "normal psma": (
         "Physiological PSMA tracer biodistribution noted in salivary glands, lacrimal glands, liver, spleen, "
         "kidneys, and bowel. No abnormal PSMA-avid primary, nodal, or distant skeletal metastasis."
-    )
+    ),
+    "physiological biodistribution": (
+        "Physiological tracer distribution is noted in brain parenchyma, myocardium, liver, spleen, bowel, "
+        "urinary bladder, and excreted tracer in bilateral kidneys. No abnormal hypermetabolic lesion identified."
+    ),
+    "no distant metastasis": (
+        "No hypermetabolic osseous, pulmonary, hepatic, or peritoneal lesion identified to suggest distant metastatic disease."
+    ),
+    "normal brown fat": (
+        "Mild symmetrical tracer concentration in bilateral supraclavicular fat compartments, consistent with physiological brown adipose tissue uptake."
+    ),
+    "deauville score 1": "Deauville score 1: No tracer uptake above background.",
+    "deauville score 2": "Deauville score 2: Uptake less than or equal to mediastinal blood pool.",
+    "deauville score 3": "Deauville score 3: Uptake greater than mediastinum but less than or equal to liver background.",
+    "deauville score 4": "Deauville score 4: Uptake moderately higher than liver.",
+    "deauville score 5": "Deauville score 5: Uptake markedly higher than liver or new lesion."
 }

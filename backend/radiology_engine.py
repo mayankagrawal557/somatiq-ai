@@ -211,9 +211,19 @@ class RadiologyEngine:
         """
         template = TEMPLATES.get(template_id, TEMPLATES["ct_brain"])
         clean_text = dictated_text.strip()
-        
+        findings_text = clean_text
+        dictated_impression = ""
+
+        # Extract explicit spoken Impression or Conclusion if present
+        imp_match = re.search(r'\b(?:impression|conclusion)\s*:\s*(.+)$', clean_text, re.IGNORECASE | re.DOTALL)
+        if imp_match:
+            dictated_impression = imp_match.group(1).strip()
+            findings_text = clean_text[:imp_match.start()].strip()
+            # Clean leading Findings: tag if present
+            findings_text = re.sub(r'^(?:findings|observations)\s*:\s*', '', findings_text, flags=re.IGNORECASE).strip()
+
         # Identify sentences while preserving decimals (e.g. 11.4 SUV, 2.5 cm)
-        raw_sentences = re.split(r'(?<!\d)\.(?!\d)|\n+', clean_text)
+        raw_sentences = re.split(r'(?<!\d)\.(?!\d)|\n+', findings_text)
         sentences = [s.strip() for s in raw_sentences if s.strip()]
         
         # Build Findings block
@@ -223,21 +233,23 @@ class RadiologyEngine:
         else:
             findings_paragraphs.append("[No specific findings dictated yet. Radiologist review needed.]")
 
-        # Synthesize Impression based purely on dictated sentences
+        # Synthesize Impression
         impression_paragraphs = []
-        if clean_text:
+        if dictated_impression:
+            impression_paragraphs.append(dictated_impression)
+        elif findings_text:
             # Check for negative/normal patterns
-            lower_dictation = clean_text.lower()
+            lower_dictation = findings_text.lower()
             if any(term in lower_dictation for term in ["no acute", "normal", "unremarkable", "clear", "intact", "no hemorrhage", "no mass"]):
                 impression_paragraphs.append(
-                    f"1. Findings consistent with dictated text: {clean_text}."
+                    f"1. Findings consistent with dictated text: {findings_text}."
                 )
                 impression_paragraphs.append(
                     "2. No acute or urgent abnormality identified in the dictated observations."
                 )
             else:
                 impression_paragraphs.append(
-                    f"1. Key dictated observations: {clean_text}."
+                    f"1. Key dictated observations: {findings_text}."
                 )
             impression_paragraphs.append(
                 "NOTE: Radiologist clinical correlation and final sign-off required."
