@@ -42,6 +42,7 @@ from backend.database import (
 )
 from backend.db_service import DatabaseService
 from backend.smart_structurer import SmartStructurer
+from backend.clinical_collaborator_service import ClinicalCollaboratorService, CollaboratorRequest, CollaboratorResponse
 
 # Zero-PHI Production Logger (HIPAA/DISHA compliant)
 logger = logging.getLogger("somatiq.production")
@@ -414,6 +415,16 @@ def smart_structure_endpoint(req: SmartStructureRequest):
         patient_age_gender=req.patient_age_gender or "45Y / M",
         modality=req.modality or "CT"
     )
+
+@app.post("/api/clinical-collaborator", response_model=CollaboratorResponse)
+def clinical_collaborator_endpoint(req: CollaboratorRequest):
+    """
+    RadOne AI Clinical Collaborator:
+    Context-aware clinical co-pilot offering differential diagnoses,
+    history/completeness cross-checks, senior impression synthesis, critical value triage,
+    and free-text inquiry with outbound PII scrubbing and zero-hallucinated measurement bounds.
+    """
+    return ClinicalCollaboratorService.execute(req)
 
 @app.get("/api/macros")
 def get_macros_endpoint():

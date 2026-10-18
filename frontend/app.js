@@ -34,7 +34,9 @@ const state = {
     bottom_margin_mm: 30,
     include_summary_page2: false
   },
-  currentEditFocusIndex: -1
+  currentEditFocusIndex: -1,
+  lastSuggestedImpression: null,
+  collaboratorLoading: false
 };
 
 // DOM References
@@ -78,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePendingEditsCount();
   });
 
-  // Global & Editor Keyboard Shortcuts (Alt+S, Ctrl+Enter, Tab)
+  // Global & Editor Keyboard Shortcuts (Alt+S, Alt+C, Ctrl+Shift+C, Ctrl+Enter, Tab)
   window.addEventListener('keydown', (e) => {
     // 1. One-Shot Smart AI Merge: Alt + S
     if (e.altKey && (e.key === 's' || e.key === 'S')) {
@@ -87,7 +89,21 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // 2. Accept All AI Edits: Ctrl + Enter
+    // 2. RadOne AI Clinical Collaborator: Alt + C
+    if (e.altKey && (e.key === 'c' || e.key === 'C')) {
+      e.preventDefault();
+      toggleCollaboratorDrawer();
+      return;
+    }
+
+    // 3. 1-Click Clean Copy for RIS / PACS / Word: Ctrl + Shift + C
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
+      e.preventDefault();
+      copyCleanReportForRIS();
+      return;
+    }
+
+    // 4. Accept All AI Edits: Ctrl + Enter
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       const marks = richEditor.querySelectorAll('mark');
       if (marks.length > 0) {
@@ -97,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 3. Next AI Edit Navigation: Tab
+    // 5. Next AI Edit Navigation: Tab
     if (e.key === 'Tab' && !e.shiftKey) {
       const marks = richEditor.querySelectorAll('mark');
       if (marks.length > 0 && (document.activeElement === richEditor || richEditor.contains(document.activeElement))) {
@@ -677,14 +693,69 @@ async function triggerAIStructuring() {
   }
 }
 
-// 8. Copy to Clipboard for Hospital RIS/PACS
-function copyReportText() {
-  const text = richEditor.innerText;
-  navigator.clipboard.writeText(text).then(() => {
-    showToast('Full report copied to clipboard for RIS/PACS!');
-  }).catch(() => {
-    showToast('Failed to copy to clipboard.');
+// 8. 1-Click Clean Copy to Any Hospital RIS / PACS / Word (Ctrl + Shift + C)
+async function copyCleanReportForRIS() {
+  if (!richEditor) return;
+
+  // 1. Clone editor DOM node to sanitize without mutating live editor view
+  const clone = richEditor.cloneNode(true);
+
+  // 2. Unwrap all <mark> tags (ai-diff-highlight, phonetic-diff-highlight, etc.) keeping clean text
+  const marks = clone.querySelectorAll('mark');
+  marks.forEach(mark => {
+    mark.replaceWith(...mark.childNodes);
   });
+
+  // 3. Strip all dark PACS styling classes, IDs, and custom attributes
+  const elements = clone.querySelectorAll('*');
+  elements.forEach(el => {
+    el.removeAttribute('class');
+    el.removeAttribute('id');
+    el.removeAttribute('contenteditable');
+    if (el.tagName === 'STRONG' || el.tagName === 'B') {
+      el.style.fontWeight = 'bold';
+      el.style.color = '#000000';
+    } else if (el.tagName === 'P' || el.tagName === 'DIV') {
+      el.style.margin = '0 0 6px 0';
+      el.style.lineHeight = '1.4';
+    }
+  });
+
+  // 4. Wrap with universal hospital inline CSS (Arial 11pt, #000000)
+  const universalHtml = `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #000000; line-height: 1.4; background-color: #ffffff;">${clone.innerHTML}</div>`;
+
+  // 5. Clean plain text with uppercase section headers and clean line breaks
+  const cleanPlainText = (clone.innerText || clone.textContent || '').trim();
+
+  // 6. Write simultaneously to Clipboard: text/html AND text/plain
+  try {
+    if (navigator.clipboard && window.ClipboardItem) {
+      const blobHtml = new Blob([universalHtml], { type: 'text/html' });
+      const blobText = new Blob([cleanPlainText], { type: 'text/plain' });
+      const clipboardItem = new ClipboardItem({
+        'text/html': blobHtml,
+        'text/plain': blobText
+      });
+      await navigator.clipboard.write([clipboardItem]);
+      showToast('📋 Clean report copied for RIS / PACS / Word (Universal HTML & Text)!');
+      return;
+    }
+  } catch (err) {
+    console.warn('ClipboardItem HTML write error, falling back to plain text:', err);
+  }
+
+  // Graceful fallback for non-ClipboardItem environments
+  try {
+    await navigator.clipboard.writeText(cleanPlainText);
+    showToast('📋 Clean report copied to clipboard for RIS/PACS!');
+  } catch (err) {
+    showToast('❌ Failed to copy to clipboard.');
+  }
+}
+
+// Backward-compatible alias
+function copyReportText() {
+  copyCleanReportForRIS();
 }
 
 // 9. Save Draft to SQLite
@@ -793,6 +864,8 @@ const trainedWordsCount = document.getElementById('trainedWordsCount');
 
 function toggleTrainVocabDrawer() {
   if (trainVocabDrawer.classList.contains('translate-x-full')) {
+    const collabDrawer = document.getElementById('collaboratorDrawer');
+    if (collabDrawer) collabDrawer.classList.add('translate-x-full');
     trainVocabDrawer.classList.remove('translate-x-full');
     loadTrainedWords();
   } else {
@@ -1556,4 +1629,304 @@ function applyLetterheadPrintStyles() {
       printPage2El.classList.add('hidden');
     }
   }
+}
+
+// =========================================================================
+// RADONE AI CLINICAL COLLABORATOR (Context-Aware Co-Pilot Drawer)
+// =========================================================================
+
+function toggleCollaboratorDrawer() {
+  const drawer = document.getElementById('collaboratorDrawer');
+  if (!drawer) return;
+
+  const isClosed = drawer.classList.contains('translate-x-full');
+  if (isClosed) {
+    const vocabDrawer = document.getElementById('trainVocabDrawer');
+    if (vocabDrawer) vocabDrawer.classList.add('translate-x-full');
+    drawer.classList.remove('translate-x-full');
+    updateCollaboratorContextBadge();
+    const input = document.getElementById('collabCustomInput');
+    if (input) setTimeout(() => input.focus(), 150);
+  } else {
+    drawer.classList.add('translate-x-full');
+  }
+}
+
+function updateCollaboratorContextBadge() {
+  const badge = document.getElementById('collabContextBadge');
+  if (badge) {
+    const modality = patientModality ? patientModality.value : 'Radiology';
+    const study = selectTemplate && selectTemplate.selectedIndex >= 0 ? selectTemplate.options[selectTemplate.selectedIndex].text : 'Active Study';
+    const ageSex = patientAgeSex ? patientAgeSex.value : '';
+    badge.textContent = `${modality} • ${study} • ${ageSex}`.trim();
+  }
+}
+
+function handleCustomCollaboratorSubmit(e) {
+  if (e) e.preventDefault();
+  const input = document.getElementById('collabCustomInput');
+  if (!input) return;
+  const query = input.value.trim();
+  if (!query) {
+    showToast('Please type a question or clinical query.');
+    return;
+  }
+  runClinicalCollaborator('custom_ask', query);
+}
+
+async function runClinicalCollaborator(action, customQuery = null) {
+  if (state.collaboratorLoading) return;
+
+  const resultsContainer = document.getElementById('collabResultsContainer');
+  const initialState = document.getElementById('collabInitialState');
+  const loadingState = document.getElementById('collabLoadingState');
+  const loadingText = document.getElementById('collabLoadingText');
+  const contentBody = document.getElementById('collabContentBody');
+  const modelBadge = document.getElementById('collabModelBadge');
+
+  // Highlight active chip
+  const chips = document.querySelectorAll('.collab-action-chip');
+  chips.forEach(chip => {
+    chip.classList.remove('bg-purple-900/60', 'border-purple-500', 'ring-1', 'ring-purple-400');
+  });
+
+  const chipMap = {
+    'differentials': 'chipDifferentials',
+    'history_check': 'chipHistoryCheck',
+    'concise_impression': 'chipConciseImpression',
+    'critical_alert': 'chipCriticalAlert'
+  };
+  if (chipMap[action]) {
+    const activeChip = document.getElementById(chipMap[action]);
+    if (activeChip) {
+      activeChip.classList.add('bg-purple-900/60', 'border-purple-500', 'ring-1', 'ring-purple-400');
+    }
+  }
+
+  // Set loading text based on action
+  const loadingMessages = {
+    'differentials': 'Analyzing findings for Differential Diagnoses & Evidence Guidelines...',
+    'history_check': 'Correlating findings with Clinical History & Pertinent Negatives...',
+    'concise_impression': 'Distilling findings into Senior-Consultant Crisp Impression...',
+    'critical_alert': 'Scanning findings for Acute Panic Flags & Red Alerts...',
+    'custom_ask': `Querying RadOne Co-Pilot: "${(customQuery || '').slice(0, 35)}..."`
+  };
+
+  if (loadingText) {
+    loadingText.textContent = loadingMessages[action] || 'Analyzing clinical findings...';
+  }
+
+  // Switch UI states
+  if (initialState) initialState.classList.add('hidden');
+  if (contentBody) contentBody.classList.add('hidden');
+  if (loadingState) loadingState.classList.remove('hidden');
+  state.collaboratorLoading = true;
+
+  // Extract clinical context from DOM & editor
+  const editorText = richEditor.innerText || '';
+  let clinicalHistory = '';
+  const historyMatch = editorText.match(/CLINICAL INDICATION\s*:\s*([\s\S]*?)(?=\bFINDINGS|\bTECHNIQUE|\bPROCEDURE|\bIMPRESSION|$)/i);
+  if (historyMatch && historyMatch[1].trim()) {
+    clinicalHistory = historyMatch[1].trim();
+  } else {
+    clinicalHistory = 'Routine diagnostic evaluation / Not specified';
+  }
+
+  const payload = {
+    action: action,
+    modality: patientModality ? patientModality.value : 'Radiology',
+    study_name: selectTemplate && selectTemplate.selectedIndex >= 0 ? selectTemplate.options[selectTemplate.selectedIndex].text : 'Imaging Study',
+    age_gender: patientAgeSex ? patientAgeSex.value : 'Adult',
+    clinical_history: clinicalHistory,
+    findings_html: richEditor.innerHTML || '',
+    custom_query: customQuery
+  };
+
+  try {
+    const res = await fetch('/api/clinical-collaborator', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Clinical Collaborator failed to respond.');
+    }
+
+    const data = await res.json();
+    state.lastSuggestedImpression = data.suggested_impression_html || null;
+
+    if (modelBadge && data.model_used) {
+      modelBadge.textContent = data.model_used;
+    }
+
+    renderCollaboratorResults(data);
+
+    if (loadingState) loadingState.classList.add('hidden');
+    if (contentBody) contentBody.classList.remove('hidden');
+
+    // Toast triage status
+    if (data.triage_status === 'CRITICAL_PANIC') {
+      showToast('🚨 CRITICAL / PANIC Alert: Immediate Clinician Communication Flagged!');
+    } else {
+      showToast('🧠 RadOne Clinical Analysis Complete');
+    }
+
+  } catch (err) {
+    console.error('RadOne Collaborator error:', err);
+    if (loadingState) loadingState.classList.add('hidden');
+    if (contentBody) {
+      contentBody.innerHTML = `
+        <div class="p-4 rounded-xl bg-rose-950/50 border border-rose-800 text-rose-200 space-y-2">
+          <div class="font-bold text-xs flex items-center gap-1.5">
+            <span>❌</span> Clinical Co-Pilot Error
+          </div>
+          <p class="text-[11px] text-rose-300/90">${escapeHtml(err.message || 'Unable to connect to clinical collaborator.')}</p>
+          <button onclick="runClinicalCollaborator('${action}', ${customQuery ? `'${escapeHtml(customQuery)}'` : 'null'})" class="mt-2 px-3 py-1 bg-rose-800 hover:bg-rose-700 text-white rounded text-xs font-semibold">
+            Retry Analysis
+          </button>
+        </div>
+      `;
+      contentBody.classList.remove('hidden');
+    }
+    showToast('Failed to analyze with Clinical Collaborator.');
+  } finally {
+    state.collaboratorLoading = false;
+  }
+}
+
+function renderCollaboratorResults(data) {
+  const contentBody = document.getElementById('collabContentBody');
+  if (!contentBody) return;
+
+  // 1. Triage Badge
+  let triageHtml = '';
+  if (data.triage_status === 'CRITICAL_PANIC') {
+    triageHtml = `
+      <div class="px-3 py-2 rounded-xl bg-rose-950 border-2 border-rose-600 text-rose-200 font-bold text-xs flex items-center justify-between shadow-lg shadow-rose-900/40 animate-pulse">
+        <span class="flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+          🚨 CRITICAL / PANIC FINDING ALERT
+        </span>
+        <span class="text-[10px] text-rose-300 font-mono font-bold bg-rose-900/60 px-2 py-0.5 rounded border border-rose-700">Immediate Action</span>
+      </div>
+    `;
+  } else if (data.triage_status === 'ATTENTION') {
+    triageHtml = `
+      <div class="px-3 py-2 rounded-xl bg-amber-950/80 border border-amber-600 text-amber-200 font-bold text-xs flex items-center justify-between shadow-md">
+        <span class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+          🟡 CLINICAL ATTENTION RECOMMENDED
+        </span>
+        <span class="text-[10px] text-amber-300 font-mono bg-amber-900/60 px-2 py-0.5 rounded border border-amber-700">Actionable</span>
+      </div>
+    `;
+  } else {
+    triageHtml = `
+      <div class="px-3 py-2 rounded-xl bg-emerald-950/70 border border-emerald-700 text-emerald-200 font-bold text-xs flex items-center justify-between shadow-md">
+        <span class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          🟢 ROUTINE / NON-URGENT FINDINGS
+        </span>
+        <span class="text-[10px] text-emerald-300 font-mono bg-emerald-900/60 px-2 py-0.5 rounded border border-emerald-700">Standard Follow-up</span>
+      </div>
+    `;
+  }
+
+  // 2. Laterality / Hallucinated Measurement Safety Banner
+  let safetyBannerHtml = '';
+  if (data.laterality_and_number_check_passed === false) {
+    safetyBannerHtml = `
+      <div class="p-2.5 rounded-xl bg-amber-950/70 border border-amber-500 text-amber-200 text-[11px] leading-relaxed flex items-start gap-2 shadow-inner">
+        <span class="text-base shrink-0">⚠️</span>
+        <div>
+          <strong class="text-amber-300">Deterministic Safety Alert:</strong>
+          <span>Potential measurement unit discrepancy or laterality variation detected between raw dictated findings and AI output. Clinician must verify all sizes and sides.</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // 3. Summary Title Header
+  const summaryTitleHtml = `
+    <div class="border-b border-pacs-800 pb-2">
+      <h3 class="font-bold text-white text-xs tracking-wide flex items-center gap-2">
+        <span class="text-purple-400">✦</span> ${escapeHtml(data.summary_title)}
+      </h3>
+    </div>
+  `;
+
+  // 4. Clinical Evidence & Guideline Items
+  const itemsHtml = (data.items || []).map(item => `
+    <div class="bg-pacs-950 border border-pacs-800 rounded-xl p-3 space-y-1.5 hover:border-purple-800/80 transition shadow-inner">
+      <div class="flex items-start justify-between gap-2">
+        <span class="font-bold text-slate-100 text-xs">${escapeHtml(item.title)}</span>
+        <span class="px-2 py-0.5 rounded text-[9px] font-mono bg-purple-950/90 border border-purple-800 text-purple-300 shrink-0 font-semibold">
+          ${escapeHtml(item.confidence_or_guideline)}
+        </span>
+      </div>
+      <p class="text-[11px] text-slate-300 leading-relaxed font-sans">${escapeHtml(item.detail)}</p>
+    </div>
+  `).join('');
+
+  // 5. Suggested Structured Impression Box with 1-Click Insert
+  let impressionBoxHtml = '';
+  if (data.suggested_impression_html) {
+    impressionBoxHtml = `
+      <div class="bg-purple-950/30 border border-purple-700/60 rounded-xl p-3.5 space-y-2.5 shadow-lg">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-purple-300 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+            <span>⚡</span> Suggested Structured Impression
+          </span>
+          <button id="btnInsertCollabImpression" onclick="insertCollaboratorImpression()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-md shadow-purple-600/30 transition active:scale-95" title="Insert directly into editor under IMPRESSION (Highlighted for clinician sign-off)">
+            <span>📥</span> Insert into Report
+          </button>
+        </div>
+        <div class="bg-pacs-950 p-3 rounded-lg border border-pacs-800/90 text-xs text-slate-200 leading-relaxed font-sans shadow-inner">
+          ${data.suggested_impression_html}
+        </div>
+      </div>
+    `;
+  }
+
+  contentBody.innerHTML = `
+    ${triageHtml}
+    ${safetyBannerHtml}
+    ${summaryTitleHtml}
+    <div class="space-y-2.5">
+      ${itemsHtml}
+    </div>
+    ${impressionBoxHtml}
+  `;
+}
+
+function insertCollaboratorImpression() {
+  if (!state.lastSuggestedImpression) {
+    showToast('No suggested impression available to insert.');
+    return;
+  }
+
+  const markedHtml = `<mark class="ai-diff-highlight">${state.lastSuggestedImpression}</mark>`;
+  const html = richEditor.innerHTML;
+
+  // Check if IMPRESSION header already exists in editor
+  const impressionRegex = /(<p[^>]*><strong>\s*IMPRESSION\s*:?\s*<\/strong><\/p>|<strong>\s*IMPRESSION\s*:?\s*<\/strong>|\bIMPRESSION\s*:)/i;
+
+  if (impressionRegex.test(html)) {
+    const parts = html.split(impressionRegex);
+    const matchedHeader = html.match(impressionRegex)[0];
+    richEditor.innerHTML = `${parts[0]}${matchedHeader}<p>${markedHtml}</p>`;
+  } else {
+    // Append at the bottom
+    richEditor.innerHTML += `<p><br></p><p><strong>IMPRESSION:</strong></p><p>${markedHtml}</p>`;
+  }
+
+  updateWordCount();
+  updatePendingEditsCount();
+
+  // Scroll to editor bottom
+  richEditor.scrollTop = richEditor.scrollHeight;
+
+  showToast('📥 Suggested impression inserted into report (Highlighted for clinician sign-off).');
 }

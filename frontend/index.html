@@ -124,6 +124,11 @@
         📖 Nuclear Handbook
       </button>
 
+      <button id="btnToggleCollaborator" onclick="toggleCollaboratorDrawer()" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white font-semibold shadow-md shadow-purple-500/20 transition" title="RadOne AI Clinical Collaborator (Alt + C)">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        🧠 AI Collaborator (Alt+C)
+      </button>
+
       <button onclick="toggleTrainVocabDrawer()" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-semibold shadow-md shadow-orange-500/20 transition">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
         🎯 Train Vocabulary
@@ -432,9 +437,9 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
             ✨ AI Auto-Format (Gemini)
           </button>
-          <button onclick="copyReportText()" class="px-4 py-2.5 rounded-lg bg-pacs-900 hover:bg-pacs-800 border border-pacs-800 text-xs font-semibold text-slate-200 flex items-center gap-2 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-            Copy Text (RIS/PACS)
+          <button id="btnCopyForRIS" onclick="copyCleanReportForRIS()" class="px-4 py-2.5 rounded-lg bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 border border-slate-600 text-xs font-bold text-white flex items-center gap-2 transition shadow-md hover:border-cyan-500/50" title="1-Click Universal Copy for RIS / PACS / Word (Ctrl + Shift + C)">
+            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+            📋 Copy for RIS / Word (Ctrl+Shift+C)
           </button>
           <button onclick="saveReportDraft()" class="px-4 py-2.5 rounded-lg bg-pacs-900 hover:bg-pacs-800 border border-pacs-800 text-xs font-semibold text-emerald-400 flex items-center gap-2 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -488,6 +493,101 @@
   <!-- TOAST NOTIFICATION -->
   <div id="toastNotification" class="fixed bottom-6 right-6 bg-slate-900 border border-cyan-500/50 text-white px-4 py-2.5 rounded-lg text-xs font-semibold shadow-2xl transition-all duration-300 opacity-0 pointer-events-none translate-y-3 z-50">
     Notification Message
+  </div>
+
+  <!-- RADONE AI CLINICAL COLLABORATOR DRAWER (Alt + C) -->
+  <div id="collaboratorDrawer" class="fixed inset-y-0 right-0 w-[480px] max-w-[95vw] bg-pacs-900 border-l border-pacs-800 shadow-2xl z-40 transform translate-x-full transition-transform duration-300 flex flex-col">
+    <!-- Drawer Header -->
+    <div class="h-14 border-b border-pacs-800 px-5 flex items-center justify-between bg-pacs-950 shrink-0">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white text-sm shadow-md">
+          🧠
+        </div>
+        <div>
+          <h2 class="text-xs font-bold text-white tracking-wide">RadOne AI Clinical Collaborator</h2>
+          <p id="collabContextBadge" class="text-[10px] text-purple-400 font-mono truncate max-w-[300px]">Active Study Context</p>
+        </div>
+      </div>
+      <button onclick="toggleCollaboratorDrawer()" class="text-slate-400 hover:text-white p-1 rounded transition" title="Close Drawer (Alt + C)">
+        ✕
+      </button>
+    </div>
+
+    <!-- Safety & Compliance Badge -->
+    <div class="bg-purple-950/40 border-b border-purple-900/60 px-4 py-1.5 flex items-center justify-between text-[10px] text-purple-300 font-mono shrink-0">
+      <span>🛡️ Zero Hallucinated Measurements • PII Scrubbed</span>
+      <span id="collabModelBadge" class="text-cyan-400 font-bold">Gemini 2.5 Flash</span>
+    </div>
+
+    <!-- Clinical Action Chips Bar -->
+    <div class="p-3 bg-pacs-950/70 border-b border-pacs-850 shrink-0">
+      <div class="text-[10px] uppercase font-bold text-slate-400 mb-2">Clinical Co-Pilot Actions</div>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <button onclick="runClinicalCollaborator('differentials')" id="chipDifferentials" class="collab-action-chip px-2.5 py-2 rounded-lg bg-pacs-800 hover:bg-purple-900/50 border border-pacs-700 hover:border-purple-600/60 text-slate-200 text-left flex items-center gap-2 transition active:scale-95">
+          <span class="text-sm">🔍</span>
+          <div class="truncate">
+            <div class="font-bold text-[11px] text-white">Differentials</div>
+            <div class="text-[9px] text-slate-400">TI-RADS, Deauville, etc.</div>
+          </div>
+        </button>
+        <button onclick="runClinicalCollaborator('history_check')" id="chipHistoryCheck" class="collab-action-chip px-2.5 py-2 rounded-lg bg-pacs-800 hover:bg-purple-900/50 border border-pacs-700 hover:border-purple-600/60 text-slate-200 text-left flex items-center gap-2 transition active:scale-95">
+          <span class="text-sm">⚖️</span>
+          <div class="truncate">
+            <div class="font-bold text-[11px] text-white">History Check</div>
+            <div class="text-[9px] text-slate-400">Completeness & Negatives</div>
+          </div>
+        </button>
+        <button onclick="runClinicalCollaborator('concise_impression')" id="chipConciseImpression" class="collab-action-chip px-2.5 py-2 rounded-lg bg-pacs-800 hover:bg-purple-900/50 border border-pacs-700 hover:border-purple-600/60 text-slate-200 text-left flex items-center gap-2 transition active:scale-95">
+          <span class="text-sm">⚡</span>
+          <div class="truncate">
+            <div class="font-bold text-[11px] text-white">Concise Impression</div>
+            <div class="text-[9px] text-slate-400">Senior-Consultant Crisp</div>
+          </div>
+        </button>
+        <button onclick="runClinicalCollaborator('critical_alert')" id="chipCriticalAlert" class="collab-action-chip px-2.5 py-2 rounded-lg bg-pacs-800 hover:bg-rose-950/60 border border-pacs-700 hover:border-rose-600/60 text-slate-200 text-left flex items-center gap-2 transition active:scale-95">
+          <span class="text-sm">🚨</span>
+          <div class="truncate">
+            <div class="font-bold text-[11px] text-rose-300">Panic Check</div>
+            <div class="text-[9px] text-slate-400">Critical Red Flags</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Scrollable Results Content Area -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs" id="collabResultsContainer">
+      <!-- Placeholder initial state -->
+      <div id="collabInitialState" class="text-center py-8 space-y-3">
+        <div class="w-12 h-12 rounded-full bg-purple-900/30 text-purple-400 text-2xl flex items-center justify-center mx-auto border border-purple-800/40">
+          🧠
+        </div>
+        <div>
+          <h3 class="text-slate-200 font-bold text-sm">Context-Aware Clinical Co-Pilot</h3>
+          <p class="text-slate-400 text-xs mt-1 max-w-xs mx-auto leading-relaxed">
+            Click an action chip above or ask a clinical question below. RadOne references the active study, clinical history, and dictated findings in real time.
+          </p>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="collabLoadingState" class="hidden py-10 flex flex-col items-center justify-center space-y-3">
+        <div class="animate-spin rounded-full h-8 w-8 border-2 border-purple-400 border-t-transparent"></div>
+        <p class="text-purple-300 font-medium text-xs" id="collabLoadingText">Analyzing clinical context...</p>
+      </div>
+
+      <!-- Dynamic Results Content -->
+      <div id="collabContentBody" class="hidden space-y-3"></div>
+    </div>
+
+    <!-- Bottom Custom Inquiry Box -->
+    <div class="p-3 bg-pacs-950 border-t border-pacs-800 shrink-0">
+      <form onsubmit="handleCustomCollaboratorSubmit(event)" class="flex gap-2">
+        <input type="text" id="collabCustomInput" placeholder="Ask RadOne (e.g., 'Classify as TI-RADS or Fleischner')" class="flex-1 bg-pacs-900 border border-pacs-800 rounded-lg px-3 py-2 text-white text-xs outline-none focus:border-purple-500 transition" />
+        <button type="submit" id="btnCollabAsk" class="px-3.5 py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-bold text-xs transition active:scale-95 flex items-center gap-1 shadow-md shadow-purple-600/30">
+          Ask
+        </button>
+      </form>
+    </div>
   </div>
 
   <!-- LAYER 3: DOCTOR'S TRAIN VOCABULARY DRAWER -->
