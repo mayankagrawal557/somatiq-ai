@@ -1,6 +1,8 @@
 # Somatiq AI — Radiology & Nuclear Medicine Voice Dictation Assistant
 ## Zero-Training 2-Stage Accuracy Pipeline (Method 1 & Method 2)
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/mayankagrawal557/somatiq-ai)
+
 An enterprise-grade, real-time medical speech-to-text and AI structured reporting workstation built specifically for **Radiology, PET-CT, Gamma Camera (SPECT), and Theranostics** centers.
 
 Designed to overcome Indian English clinician accents and complex radiopharmaceutical terminology (>98% entity accuracy) using a **Zero-Training 2-Stage Pipeline** without requiring expensive acoustic model retraining.
