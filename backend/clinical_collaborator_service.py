@@ -249,18 +249,20 @@ class ClinicalCollaboratorService:
             "}"
         )
 
-        user_prompt = f"""
-ACTION: {action}
-STUDY: {study_name} ({modality})
-PATIENT: {age_gender}
-CLINICAL HISTORY / INDICATION:
-\"\"\"{clinical_history or 'Not provided'}\"\"\"
+        hist_text = clinical_history if clinical_history else "Not provided"
+        find_text = findings_text if findings_text else "No specific findings dictated yet."
+        custom_block = f'CUSTOM RADIOLOGIST QUESTION:\n"""{custom_query}"""\n' if custom_query else ""
 
-SOURCE FINDINGS:
-\"\"\"{findings_text or 'No specific findings dictated yet.'}\"\"\"
-
-{f'CUSTOM RADIOLOGIST QUESTION: \"\"\"{custom_query}\"\"\"' if custom_query else ''}
-"""
+        user_prompt = (
+            f"ACTION: {action}\n"
+            f"STUDY: {study_name} ({modality})\n"
+            f"PATIENT: {age_gender}\n"
+            f"CLINICAL HISTORY / INDICATION:\n"
+            f'"""{hist_text}"""\n\n'
+            f"SOURCE FINDINGS:\n"
+            f'"""{find_text}"""\n\n'
+            f"{custom_block}"
+        )
         return system_instruction, user_prompt
 
     @classmethod
