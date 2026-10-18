@@ -14,7 +14,7 @@ import json
 from typing import Dict, List, Any, Optional
 
 from backend.context_biasing import ContextBiasingEngine
-from backend.radiology_engine import RadiologyEngine, TEMPLATES
+from backend.radiology_engine import RadiologyEngine, TEMPLATES, clean_editor_boilerplate
 
 # Prompt injection patterns to neutralize
 INJECTION_PATTERNS = [
@@ -131,13 +131,14 @@ Return JSON:
         Structures the complete report into hospital clinical sections via Gemini 2.5 Flash
         with strict anti-hallucination guardrails and deterministic fallback.
         """
-        clean_dictation = sanitize_input_prompt(raw_dictation, max_chars=12000)
+        template = TEMPLATES.get(template_id, TEMPLATES.get("ct_brain"))
+        cleaned_raw = clean_editor_boilerplate(raw_dictation, template)
+        clean_dictation = sanitize_input_prompt(cleaned_raw, max_chars=12000)
         clean_indication = sanitize_input_prompt(clinical_indication, max_chars=1000)
         clean_technique = sanitize_input_prompt(technique_override, max_chars=1000)
         clean_comparison = sanitize_input_prompt(comparison, max_chars=1000)
 
         gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        template = TEMPLATES.get(template_id, TEMPLATES.get("ct_brain"))
 
         if gemini_key:
             try:

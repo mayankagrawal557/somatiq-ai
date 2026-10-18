@@ -180,6 +180,77 @@ TEMPLATES: Dict[str, Dict[str, Any]] = {
 from backend.nuclear_med_vocab import NUCLEAR_MED_TEMPLATES
 TEMPLATES.update(NUCLEAR_MED_TEMPLATES)
 
+def clean_editor_boilerplate(raw_text: str, template: Optional[Dict[str, Any]] = None) -> str:
+    """
+    Cleans pre-filled editor boilerplate when full editor content is passed to AI format.
+    Strips placeholder strings and extracts actual user-dictated findings and impression.
+    """
+    if not raw_text:
+        return ""
+
+    text = raw_text
+
+    # 1. Strip known placeholder strings
+    placeholders = [
+        "[Dictate or click AI Auto-Format to populate specific observations]",
+        "[Draft pending review]",
+        "[No specific findings dictated yet. Radiologist review needed.]",
+        "[No specific findings dictated]",
+        "[Normal study summary]",
+        "[DRAFT PENDING RADIOLOGIST APPROVAL - NOT FINAL]"
+    ]
+    for ph in placeholders:
+        text = text.replace(ph, "")
+
+    # 2. Check if the input text contains pre-filled template structure (e.g. FINDINGS:, EXAMINATION:, etc.)
+    has_findings_header = bool(re.search(r'\bFINDINGS\s*:', text, re.IGNORECASE))
+    if has_findings_header:
+        findings_part = ""
+        impression_part = ""
+
+        # Extract content under FINDINGS:
+        m_findings = re.search(
+            r'\bFINDINGS\s*:\s*(.*?)(?=\b(?:IMPRESSION|LIMITATIONS|PROCEDURE|TECHNIQUE|EXAMINATION|CLINICAL INDICATION)\s*:|$)',
+            text,
+            re.IGNORECASE | re.DOTALL
+        )
+        if m_findings:
+            findings_part = m_findings.group(1).strip()
+
+        # Extract content under IMPRESSION:
+        m_impression = re.search(
+            r'\bIMPRESSION\s*:\s*(.*?)(?=\b(?:LIMITATIONS|FINDINGS|PROCEDURE|TECHNIQUE|EXAMINATION|CLINICAL INDICATION)\s*:|$)',
+            text,
+            re.IGNORECASE | re.DOTALL
+        )
+        if m_impression:
+            imp_cand = m_impression.group(1).strip()
+            # Exclude draft placeholder or empty
+            if imp_cand and not any(p in imp_cand.lower() for p in ["[draft", "[normal", "pending review", "not final"]):
+                impression_part = imp_cand
+
+        # Strip template boilerplate lines if they leaked into findings
+        if template:
+            for def_val in [
+                template.get("title", ""),
+                template.get("technique", ""),
+                template.get("indication_default", ""),
+                template.get("comparison_default", "")
+            ]:
+                if def_val and len(def_val) > 5:
+                    findings_part = findings_part.replace(def_val, "").strip()
+
+        # Strip any "EXAMINATION PARAMETERS:" blocks
+        findings_part = re.sub(r'EXAMINATION PARAMETERS\s*:.*?(?=\n\n|$)', '', findings_part, flags=re.IGNORECASE | re.DOTALL).strip()
+
+        combined = findings_part.strip()
+        if impression_part:
+            combined = f"{combined}\n\nIMPRESSION: {impression_part}" if combined else f"IMPRESSION: {impression_part}"
+        return combined.strip()
+
+    return text.strip()
+
+
 class RadiologyEngine:
     """
     Transforms dictated text and selected template into a structured radiology report.
@@ -210,7 +281,7 @@ class RadiologyEngine:
         Parses raw dictation text and formats into a clinically rigorous report.
         """
         template = TEMPLATES.get(template_id, TEMPLATES["ct_brain"])
-        clean_text = dictated_text.strip()
+        clean_text = clean_editor_boilerplate(dictated_text, template)
         findings_text = clean_text
         dictated_impression = ""
 

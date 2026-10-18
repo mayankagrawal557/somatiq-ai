@@ -26,6 +26,7 @@ from backend.radiology_engine import RadiologyEngine, TEMPLATES
 from backend.nuclear_med_vocab import NUCLEAR_MED_TEMPLATES, NUCLEAR_MED_HOTWORDS, NUCLEAR_INITIAL_PROMPT
 from backend.context_biasing import ContextBiasingEngine
 from backend.phonetic_pipeline import Pass1PhoneticPipeline
+from backend.phonetic_corrector import PhoneticCorrector
 from backend.llm_post_corrector import LLMPostCorrector
 from backend.voice_commands import VoiceCommandInterceptor
 from backend.stt_engine import SpeechToTextEngine
@@ -232,15 +233,51 @@ def get_templates_endpoint():
             "id": k,
             "title": v.get("title", k),
             "modality": v.get("modality", ""),
+            "body_part": v.get("body_part", v.get("category", "General")),
             "category": v.get("category", "Diagnostic Imaging"),
+            "radiopharmaceutical": v.get("radiopharmaceutical", ""),
+            "header_fields": v.get("header_fields", []),
+            "sections": v.get("sections", []),
             "technique": v.get("technique", ""),
             "indication_default": v.get("indication_default", ""),
             "comparison_default": v.get("comparison_default", ""),
+            "default_findings": v.get("default_findings", []),
             "default_impression": v.get("default_impression", "")
         }
         for k, v in TEMPLATES.items()
     ]
     return {"starter_templates": starter}
+
+@app.get("/api/trained-words")
+def list_trained_words():
+    """Returns doctor-trained custom vocabulary terms."""
+    return {"trained_words": PhoneticCorrector.get_trained_words()}
+
+@app.post("/api/train-word")
+def train_word_endpoint(req: TrainWordRequest):
+    """
+    Trains a new word with phonetic alias.
+    Syncs with both PhoneticCorrector and Pass1PhoneticPipeline for real-time <5ms biasing.
+    """
+    term = req.term.strip()
+    if not term:
+        raise HTTPException(status_code=400, detail="Term is required")
+    res = PhoneticCorrector.add_trained_word(term, req.misheard or "", req.modality or "all")
+    if req.misheard and req.misheard.strip():
+        Pass1PhoneticPipeline.add_custom_rule(req.misheard.strip(), term, req.modality or "General")
+    else:
+        Pass1PhoneticPipeline.add_hotword(term)
+    return res
+
+@app.delete("/api/trained-words")
+def delete_trained_word_endpoint(req: DeleteWordRequest):
+    """Deletes a doctor-trained term from custom vocabulary and Pass-1 rules."""
+    term = req.term.strip()
+    if not term:
+        raise HTTPException(status_code=400, detail="Term is required")
+    deleted = PhoneticCorrector.delete_trained_word(term)
+    Pass1PhoneticPipeline.delete_rule_by_term(term)
+    return {"status": "success", "deleted": deleted, "term": term}
 
 @app.get("/api/biasing-profile/{template_id}")
 def get_biasing_profile(template_id: str):
@@ -328,8 +365,15 @@ def format_report_endpoint(req: FormatReportRequest):
     return result
 
 @app.post("/api/transcribe-audio")
-async def transcribe_audio(file: UploadFile = File(...)):
-    """Handles audio file uploads (.wav/.mp3/.m4a) with medical vocabulary boosting."""
+async def transcribe_audio(
+    file: UploadFile = File(...),
+    template_id: str = Form("petct_fdg_whole_body"),
+    stt_mode: str = Form("dual")
+):
+    """
+    Handles audio file uploads (.wav/.mp3/.m4a) with medical vocabulary boosting,
+    Pass-1 phonetic correction, voice command expansion, and safety boundary checks.
+    """
     content = await file.read()
     if not content:
         raise HTTPException(status_code=400, detail="Empty audio payload")
@@ -338,13 +382,32 @@ async def transcribe_audio(file: UploadFile = File(...)):
         audio_bytes=content,
         filename=file.filename or "recording.wav"
     )
-    # Apply voice commands to transcribed text
-    parsed = VoiceCommandInterceptor.process_text(stt_result.get("text", ""))
+
+    if stt_result.get("error") and not stt_result.get("text"):
+        raise HTTPException(status_code=422, detail=stt_result["error"])
+
+    raw_text = stt_result.get("text", "")
+
+    # Stage 1 (Pass 1): Sub-5ms Deterministic Sound-Alike, Metaphone & SUVmax Normalizer
+    pass1_text, pass1_repairs = Pass1PhoneticPipeline.process_pass1(raw_text)
+
+    # Stage 2: Voice Command Interceptor & Spoken Macro Expansion
+    parsed = VoiceCommandInterceptor.process_text(pass1_text)
+
+    # Clinical Safety & Quality Check (Handbook Boundaries)
+    safety_eval = ClinicalQualityChecker.analyze_transcript(raw_text, template_id)
+
     return {
         "status": "success",
-        "raw_text": stt_result.get("text", ""),
+        "raw_text": raw_text,
         "transcription": parsed["text"],
         "macro_applied": parsed["macro_applied"],
+        "command": parsed.get("command"),
+        "corrections_applied": pass1_repairs,
+        "quality_flags": safety_eval["quality_flags"],
+        "uncertain_terms": safety_eval["uncertain_terms"],
+        "has_warnings": safety_eval["has_warnings"],
+        "split_function_check": safety_eval.get("split_function_check"),
         "engine": stt_result.get("engine", "default")
     }
 

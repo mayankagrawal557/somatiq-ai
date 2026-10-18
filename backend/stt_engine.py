@@ -136,10 +136,42 @@ class SpeechToTextEngine:
             except Exception as e:
                 pass
 
-        # Mode B2: Zero-cost browser speech forwarding & standard audio acknowledgment
-        # When audio is streamed via WebSocket or uploaded directly, we extract and acknowledge
+        # Mode B2: Google Gemini Audio Fallback if GEMINI_API_KEY is available
+        gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if gemini_key:
+            try:
+                from google import genai
+                from google.genai import types
+
+                client = genai.Client(api_key=gemini_key)
+                mime = "audio/wav"
+                fn_lower = filename.lower()
+                if fn_lower.endswith(".mp3"):
+                    mime = "audio/mp3"
+                elif fn_lower.endswith(".m4a"):
+                    mime = "audio/m4a"
+                elif fn_lower.endswith(".webm") or fn_lower.endswith(".ogg"):
+                    mime = "audio/webm"
+
+                audio_part = types.Part.from_bytes(data=audio_bytes, mime_type=mime)
+                prompt = (
+                    "Please accurately transcribe this audio recording of a doctor's medical radiology/nuclear medicine voice dictation.\n"
+                    f"Contextual Vocabulary & Modality Guidance: {initial_prompt}\n"
+                    "Return ONLY the verbatim transcription text. Do NOT add conversational replies, markdown greetings, or introductory phrases."
+                )
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=[prompt, audio_part]
+                )
+                transcription = response.text.strip().replace('"', '')
+                if transcription:
+                    return {"text": transcription, "engine": "gemini_audio_stt"}
+            except Exception as e:
+                pass
+
+        # Mode B3: Unconfigured STT Fallback
         return {
-            "text": "Audio chunk received and processed successfully with medical vocab tuning.",
-            "engine": "audio_stream_engine",
-            "bytes_received": len(audio_bytes)
+            "text": "",
+            "engine": "unconfigured",
+            "error": "Audio file transcription requires GROQ_API_KEY or GEMINI_API_KEY on cloud deployments (or faster-whisper locally). Use live microphone dictation in Chrome/Edge for zero-key browser STT."
         }

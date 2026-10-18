@@ -24,7 +24,8 @@ const state = {
   reconnectAttempts: 0,
   reconnectTimer: null,
   heartbeatInterval: null,
-  offlineBuffer: []
+  offlineBuffer: [],
+  sttMode: 'dual'
 };
 
 // DOM References
@@ -59,15 +60,40 @@ document.addEventListener('DOMContentLoaded', () => {
   initSpeechRecognition();
   loadTemplates();
   initCanvasWaveform();
+  checkServerHealth();
   
   // Word count tracker
   richEditor.addEventListener('input', updateWordCount);
 
-  // Set default initial template content
-  setTimeout(() => {
-    onTemplateSelect();
-  }, 400);
+  // STT Engine Selector
+  if (selectSttEngine) {
+    selectSttEngine.addEventListener('change', (e) => {
+      state.sttMode = e.target.value;
+      const label = e.target.options[e.target.selectedIndex].text;
+      showToast(`Speech Engine set to: ${label}`);
+    });
+  }
 });
+
+async function checkServerHealth() {
+  try {
+    const res = await fetch('/api/health');
+    if (!res.ok) return;
+    const data = await res.json();
+    const pass2Badge = document.getElementById('pass2Badge');
+    if (pass2Badge) {
+      if (data.gemini_api_configured) {
+        pass2Badge.className = 'px-2 py-1 rounded bg-purple-950/80 border border-purple-800 text-purple-300';
+        pass2Badge.textContent = 'Pass-2 Gemini Flash: ON';
+      } else {
+        pass2Badge.className = 'px-2 py-1 rounded bg-slate-900 border border-slate-700 text-slate-400';
+        pass2Badge.textContent = 'Pass-2: Local Fallback';
+      }
+    }
+  } catch (e) {
+    console.warn('Health check error:', e);
+  }
+}
 
 // 1. WebSocket Live Stream Connection (/ws/dictate) with Auto-Reconnect & Offline Buffering
 function initWebSocket() {
@@ -416,10 +442,13 @@ function updateWordCount() {
 async function loadTemplates() {
   try {
     const res = await fetch('/api/templates');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     state.templates = data.starter_templates || [];
+    onTemplateSelect();
   } catch (e) {
     console.error('Failed to load templates:', e);
+    showToast('Failed to load clinical templates.');
   }
 }
 
@@ -522,6 +551,35 @@ async function triggerAIStructuring() {
     return;
   }
 
+  // Strip placeholders before checking if meaningful findings were entered
+  const strippedText = rawText
+    .replace(/\[Dictate or click AI Auto-Format to populate specific observations\]/gi, '')
+    .replace(/\[Draft pending review\]/gi, '')
+    .replace(/\[No specific findings dictated\]/gi, '')
+    .replace(/\[Normal study summary\]/gi, '')
+    .trim();
+
+  // Check if findings section has content beyond template headers
+  const tid = selectTemplate.value;
+  const t = state.templates.find(item => item.id === tid);
+  let hasUserContent = false;
+  if (t) {
+    let checkText = strippedText;
+    if (t.title) checkText = checkText.replace(t.title, '');
+    if (t.technique) checkText = checkText.replace(t.technique, '');
+    if (t.indication_default) checkText = checkText.replace(t.indication_default, '');
+    if (t.comparison_default) checkText = checkText.replace(t.comparison_default, '');
+    checkText = checkText.replace(/EXAMINATION:|TECHNIQUE:|CLINICAL INDICATION:|COMPARISON:|FINDINGS:|IMPRESSION:|EXAMINATION PARAMETERS:/gi, '').trim();
+    hasUserContent = checkText.length > 5;
+  } else {
+    hasUserContent = strippedText.length > 15;
+  }
+
+  if (!hasUserContent) {
+    showToast('Please dictate or type findings first before running AI Auto-Format.');
+    return;
+  }
+
   showToast('✨ AI structuring report via Gemini...');
 
   try {
@@ -534,8 +592,14 @@ async function triggerAIStructuring() {
       })
     });
 
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      showToast(errData.detail || 'AI auto-formatting failed.');
+      return;
+    }
+
     const data = await res.json();
-    const s = data.sections;
+    const s = data.sections || {};
 
     // Render formatted sections in rich editor (5 Core Handbook Sections)
     richEditor.innerHTML = `
@@ -601,6 +665,11 @@ async function saveReportDraft() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      showToast(errData.detail || 'Failed to save report.');
+      return;
+    }
     const d = await res.json();
     state.currentReportId = d.report_id;
     showToast(`Report #${d.report_id} saved securely to SQLite!`);
@@ -619,16 +688,28 @@ async function handleAudioUpload(e) {
 
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('template_id', selectTemplate.value);
+  formData.append('stt_mode', state.sttMode || 'dual');
 
   try {
     const res = await fetch('/api/transcribe-audio', {
       method: 'POST',
       body: formData
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.status === 'error') {
+      showToast(data.detail || data.message || 'Audio file transcription failed.');
+      return;
+    }
     if (data.transcription) {
       insertTextAtCursor(data.transcription);
       showToast('Audio file transcribed with medical vocabulary booster!');
+    }
+    if (data.corrections_applied && data.corrections_applied.length > 0) {
+      renderCorrectionsInFeed(data.corrections_applied);
+    }
+    if (data.quality_flags || data.uncertain_terms) {
+      renderSafetyFlags(data.quality_flags, data.uncertain_terms, data.split_function_check);
     }
   } catch (err) {
     showToast('Failed to process audio file.');
@@ -679,6 +760,11 @@ function toggleTrainVocabDrawer() {
 async function loadTrainedWords() {
   try {
     const res = await fetch('/api/trained-words');
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      showToast(errData.detail || 'Failed to load trained words.');
+      return;
+    }
     const data = await res.json();
     const words = data.trained_words || [];
     trainedWordsCount.textContent = `${words.length} terms`;
@@ -702,6 +788,7 @@ async function loadTrainedWords() {
     `).join('');
   } catch (err) {
     console.error('Failed to load trained words:', err);
+    showToast('Failed to load trained words.');
   }
 }
 
@@ -721,6 +808,11 @@ async function submitTrainWord() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ term, misheard, modality })
     });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      showToast(errData.detail || 'Failed to train word.');
+      return;
+    }
     const data = await res.json();
     showToast(`🎯 Trained: "${term}" added to active vocabulary!`);
     trainCorrectTerm.value = '';
@@ -733,11 +825,16 @@ async function submitTrainWord() {
 
 async function deleteTrainedWord(term) {
   try {
-    await fetch('/api/trained-words', {
+    const res = await fetch('/api/trained-words', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ term })
     });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      showToast(errData.detail || 'Failed to delete word.');
+      return;
+    }
     showToast(`Removed "${term}" from vocabulary.`);
     loadTrainedWords();
   } catch (e) {
@@ -834,6 +931,11 @@ async function submitQuickCustomRule() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pattern, replacement, category: 'Quick Rule' })
     });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      showToast(errData.detail || 'Failed to save pronunciation rule.');
+      return;
+    }
     const d = await res.json();
     showToast(`⚡ Instant rule saved: "${pattern}" → "${replacement}"!`);
     patInput.value = '';

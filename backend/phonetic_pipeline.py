@@ -310,6 +310,31 @@ class Pass1PhoneticPipeline:
         return {"status": "success", "pattern": pat_clean, "replacement": rep_clean}
 
     @classmethod
+    def add_hotword(cls, term: str):
+        """Adds a term to hotwords list for Method 1 decoder biasing if not present."""
+        rules = cls.load_custom_rules()
+        term_clean = term.strip()
+        if term_clean and term_clean not in rules.get("hotwords", []):
+            rules.setdefault("hotwords", []).append(term_clean)
+            cls.save_custom_rules(rules)
+
+    @classmethod
+    def delete_rule_by_term(cls, term: str) -> bool:
+        """Deletes any custom rule matching replacement or pattern, and removes from hotwords."""
+        rules = cls.load_custom_rules()
+        term_clean = term.strip().lower()
+        initial_rules_count = len(rules.get("custom_rules", []))
+        initial_hw_count = len(rules.get("hotwords", []))
+        rules["custom_rules"] = [
+            r for r in rules.get("custom_rules", [])
+            if r.get("replacement", "").strip().lower() != term_clean and r.get("pattern", "").strip().lower() != term_clean
+        ]
+        if "hotwords" in rules:
+            rules["hotwords"] = [h for h in rules["hotwords"] if h.strip().lower() != term_clean]
+        cls.save_custom_rules(rules)
+        return (len(rules.get("custom_rules", [])) < initial_rules_count) or (len(rules.get("hotwords", [])) < initial_hw_count)
+
+    @classmethod
     def get_custom_rules(cls) -> List[Dict[str, Any]]:
         return cls.load_custom_rules().get("custom_rules", [])
 
