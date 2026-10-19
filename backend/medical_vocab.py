@@ -5,62 +5,97 @@ Contains:
 2. Clinical normal macros for rapid expansion (e.g. 'normal liver', 'normal kidneys').
 """
 
-# Common clinical hotwords in Indian Radiology & International Practice
+# Common clinical hotwords in Indian Radiology & International Practice (250+ High-Precision Terms)
 RADIOLOGY_HOTWORDS = [
-    "Hepatomegaly",
-    "Splenomegaly",
-    "Pleural effusion",
-    "Parenchyma",
-    "Cholelithiasis",
-    "Cholecystitis",
-    "Hydronephrosis",
-    "Hydroureteronephrosis",
-    "T1 hyperintense",
-    "T2 hyperintense",
-    "FLAIR hyperintense",
-    "Mediastinum",
-    "Pneumothorax",
-    "Osteophytes",
-    "Spondylolisthesis",
-    "Atelectasis",
-    "Hemangioma",
-    "Calculus",
-    "Lymphadenopathy",
-    "Contrast enhancement",
-    "Basal cisterns",
-    "Calvarium",
-    "Consolidation",
-    "Ground-glass opacities",
-    "Infarction",
-    "Intracranial haemorrhage",
-    "Mass effect",
-    "Midline shift",
-    "Subdural hematoma",
-    "Epidural hematoma",
-    "Subarachnoid hemorrhage",
-    "Pneumoperitoneum",
-    "Ascites",
-    "Conus medullaris",
-    "Cauda equina",
-    "Ligamentum flavum",
-    "Facet joint arthropathy",
-    "Intervertebral disc extrusion",
-    "Radiculopathy",
-    "Cardiomegaly",
-    "Costophrenic angles",
-    "Bronchovascular markings",
-    "18F-FDG",
-    "SUVmax",
-    "Hypermetabolic",
-    "Hypometabolic"
+    # 1. Ultrasound Whole Abdomen & Pelvis (USG)
+    "Cholelithiasis", "Choledocholithiasis", "Hepatomegaly", "Splenomegaly", "Hepatosplenomegaly",
+    "Hydronephrosis", "Hydroureteronephrosis", "Nephrolithiasis", "Cortical echogenicity",
+    "Corticomedullary differentiation", "Mesenteric lymphadenopathy", "Bulky anteverted uterus",
+    "Anteverted", "Retroverted", "Anteverted uterus", "Retroverted uterus", "Endometrial thickness", "Polycystic ovaries",
+    "Follicular cyst", "Hemorrhagic cyst", "Tubo-ovarian mass", "Adenomyosis",
+    "Intramural leiomyoma", "Subserosal fibroid", "Acoustic shadowing", "Posterior acoustic enhancement",
+    "Comet-tail artifact", "Gallbladder sludge", "Sonographic Murphy's sign", "Common bile duct",
+    "Portal vein", "Intrahepatic biliary radicles", "Fatty infiltration", "Hepatic steatosis",
+    "Focal nodular hyperplasia", "Simple hepatic cyst", "Biliary cystadenoma", "Renal angiomyolipoma",
+    "Medullary nephrocalcinosis", "Cystitis", "Urinary bladder diverticulum", "Prostatic enlargement",
+    "Median lobe hypertrophy", "Seminal vesicles", "Psoas abscess", "Intussusception",
+    "Appendicular lump", "Periappendiceal fluid", "Target sign", "Pseudokidney sign",
+    "Morison's pouch", "Pouch of Douglas", "Free fluid in pelvis", "Anechoic",
+    "Hypoechoic", "Hyperechoic", "Isoechoic", "Parenchyma", "Pelvicalyceal system",
+    "Calculus in neck", "Calculus in fundus", "Gallbladder wall thickening", "Cholecystitis",
+    "Choledochal cyst", "Contracted gallbladder", "Renal parenchymal disease", "Perirenal fluid",
+    "Bile duct dilatation", "Hydrosalpinx", "Corpus luteum cyst", "Pelvic congestion",
+
+    # 2. CT & MRI Neuro & Head-Neck
+    "Intraparenchymal hemorrhage", "Hyperdense MCA sign", "Basal cisterns", "Midline shift",
+    "Subarachnoid hemorrhage", "Subdural hematoma", "Epidural hematoma", "Intraventricular hemorrhage",
+    "Hemorrhagic contusion", "Diffuse axonal injury", "Cytotoxic edema", "Vasogenic edema",
+    "Grey-white matter differentiation", "Insular ribbon sign", "Sulcal effacement", "Ventricular compression",
+    "Hydrocephalus", "Periventricular ooze", "Cavernoma", "Arteriovenous malformation",
+    "Developmental venous anomaly", "Berry aneurysm", "Internal capsule", "Thalamus",
+    "Lentiform nucleus", "Corona radiata", "Centrum semiovale", "Cerebellopontine angle",
+    "Acoustic schwannoma", "Meningioma", "Pituitary macroadenoma", "Sella turcica",
+    "Suprasellar extension", "Optic chiasm compression", "Calvarium", "Territorial infarction",
+    "Lacunar infarct", "Ischemic penumbra", "Perfusion mismatch", "Major flow voids",
+    "Craniocervical junction", "Meningeal enhancement", "Gliosis", "Microvascular ischemia",
+    "Leukoaraiosis", "Encephalomalacia", "Pachymeningeal thickening", "Cerebellar tonsillar ectopia",
+
+    # 3. CT & MRI Spine & Musculoskeletal
+    "Intervertebral disc extrusion", "Disc protrusion", "Disc bulge", "Thecal sac indentation",
+    "Thecal sac compression", "Neural foraminal narrowing", "Spinal canal stenosis", "Ligamentum flavum hypertrophy",
+    "Facet joint arthropathy", "Spondylolisthesis", "Pars interarticularis defect",
+    "Spondylolysis", "Schmorl's node", "Modic endplate changes", "Vertebral hemangioma",
+    "Osteophytes", "Syndesmophytes", "Sacroiliitis", "Cord compression", "Cervical myelopathy",
+    "Myelomalacia", "Conus medullaris", "Cauda equina", "Syringomyelia", "Chiari malformation",
+    "Radiculopathy", "Facet hypertrophy", "Posterior longitudinal ligament", "Bilateral pars defect",
+    "Disc space narrowing", "Endplate sclerosis", "Anterior listhesis", "Retrolisthesis",
+
+    # 4. Chest, Thorax & Body (CT / HRCT / X-Ray)
+    "Ground-glass opacities", "Consolidation", "Pleural effusion", "Pneumothorax",
+    "Atelectasis", "Bronchiectasis", "Tree-in-bud sign", "Interlobular septal thickening",
+    "Cavitation", "Centrilobular emphysema", "Panacinar emphysema", "Pneumomediastinum",
+    "Pericardial effusion", "Cardiomegaly", "Aortic dissection", "Pulmonary thromboembolism",
+    "Filling defect", "Hilar lymphadenopathy", "Subcarinal lymph node", "Paratracheal lymphadenopathy",
+    "Pneumoperitoneum", "Peritoneal fluid", "Bowel wall thickening", "Mesenteric ischemia",
+    "Cardiothoracic ratio", "Costophrenic angles", "Bronchovascular markings", "Apical fibrobullous",
+    "Empyema", "Traction bronchiectasis", "Mosaic attenuation", "Honeycombing",
+
+    # 5. Nuclear Medicine, PET-CT & Theranostics
+    "Hypermetabolic FDG avidity", "Intense tracer avidity", "Physiological biodistribution",
+    "SUVmax", "SUVmean", "SUVpeak", "Liver background", "Mediastinal blood pool",
+    "Deauville criteria", "Deauville 5-PS", "Deauville score", "Lugano classification",
+    "PERCIST", "Metabolic tumor volume", "Total lesion glycolysis", "Mediastinal lymph nodes",
+    "Subcarinal lymphadenopathy", "Paratracheal nodes", "Supraclavicular lymph node",
+    "Hilar adenopathy", "Retroperitoneal lymphadenopathy", "Mesenteric deposits",
+    "Omental caking", "Peritoneal carcinomatosis", "Osteolytic lesion", "Osteosclerotic lesion",
+    "Mixed blastic and lytic", "Tracer excretion", "Physiological urinary excretion",
+    "Brown fat uptake", "Myocardial tracer uptake", "Myocardial perfusion imaging",
+    "Split renal function", "GFR", "Renogram", "Cortical transit time", "18F-FDG",
+    "68Ga-PSMA", "18F-PSMA", "68Ga-DOTATATE", "68Ga-DOTANOC", "68Ga-DOTATOC",
+    "177Lu-PSMA", "177Lu-DOTATATE", "225Ac-PSMA", "99mTc-MDP", "99mTc-DTPA",
+    "99mTc-DMSA", "99mTc-HIDA", "99mTc-Sestamibi", "Radioiodine I-131", "Thyroid uptake",
+    "Radioiodine refractory", "Somatostatin receptor avidity", "Photopenic defect",
+    "Osteoblastic metastasis", "Superscan", "Gated SPECT", "Ejection fraction",
+    "Ventilation-perfusion match", "Mismatch defect", "Extravasation",
+
+    # 6. Additional Diagnostic & Characteristic Signs
+    "Hyperdense", "Hypodense", "Isodense", "Hyperintense", "Hypointense", "Isointense",
+    "Restricted diffusion", "ADC map", "Diffusion restriction", "Apparent diffusion coefficient",
+    "Fluid-fluid level", "DWI hyperintensity", "Blooming artifact", "Susceptibility artifact",
+    "Contrast enhancement", "Ring enhancement", "Heterogeneous enhancement", "Homogeneous enhancement",
+    "Non-enhancing", "Peripheral nodular enhancement", "Washout", "Arterial phase hyperenhancement",
+    "Venous phase washout", "Capsule appearance", "LI-RADS", "PI-RADS", "BI-RADS", "TI-RADS"
 ]
 
 # Clinical prompt guiding Whisper / Speech engines towards radiology domain
 RADIOLOGY_INITIAL_PROMPT = (
     "Radiology medical report dictation with terms: CT, MRI, X-ray, Ultrasound, PET-CT, "
-    "hepatomegaly, splenomegaly, pleural effusion, cholelithiasis, hydronephrosis, parenchymal, "
-    "T1/T2 FLAIR hyperintense, mediastinum, pneumothorax, osteophytes, spondylolisthesis, "
-    "atelectasis, hemangioma, calculus, lymphadenopathy, contrast enhancement, 18F-FDG SUVmax."
+    "hepatomegaly, splenomegaly, pleural effusion, cholelithiasis, choledocholithiasis, hydronephrosis, "
+    "parenchymal, cortical echogenicity, mesenteric lymphadenopathy, bulky anteverted uterus, polycystic ovaries, "
+    "intraparenchymal hemorrhage, hyperdense MCA sign, basal cisterns, midline shift, disc extrusion, thecal sac indentation, "
+    "neural foraminal narrowing, osteophytes, ligamentum flavum hypertrophy, T1/T2 FLAIR hyperintense, mediastinum, "
+    "pneumothorax, atelectasis, hemangioma, calculus, lymphadenopathy, contrast enhancement, 18F-FDG SUVmax, "
+    "hypermetabolic FDG avidity, mediastinal lymph nodes, osteolytic lesion, tracer excretion, Deauville criteria."
 )
 
 # Standardized normal clinical macro templates

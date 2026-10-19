@@ -105,8 +105,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Global & Editor Keyboard Shortcuts (Alt+S, Alt+C, Alt+W, Ctrl+Shift+C, Ctrl+Shift+S, Ctrl+Enter, Tab)
+  // Global & Editor Keyboard Shortcuts (Spacebar, Alt+R, Alt+S, Alt+C, Alt+W, Ctrl+Shift+C, Ctrl+Shift+S, Ctrl+Enter, Tab)
   window.addEventListener('keydown', (e) => {
+    // 0a. Spacebar to Toggle Dictation (only when not typing in text field or editor)
+    if (e.code === 'Space' || e.key === ' ') {
+      const activeTag = (document.activeElement && document.activeElement.tagName) || '';
+      const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag) ||
+                       (document.activeElement && document.activeElement.isContentEditable) ||
+                       (richEditor && (document.activeElement === richEditor || richEditor.contains(document.activeElement)));
+      if (!isTyping) {
+        e.preventDefault();
+        toggleDictation();
+        return;
+      }
+    }
+
+    // 0b. Alt + R: Toggle Dictation
+    if (e.altKey && (e.key === 'r' || e.key === 'R')) {
+      e.preventDefault();
+      toggleDictation();
+      return;
+    }
+
     // 1. One-Shot Smart AI Merge: Alt + S
     if (e.altKey && (e.key === 's' || e.key === 'S')) {
       e.preventDefault();
@@ -163,6 +183,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Close Settings menu popup when clicking outside
+  document.addEventListener('click', (e) => {
+    const popup = document.getElementById('settingsMenuPopup');
+    const btn = document.getElementById('btnSettingsMenuToggle');
+    if (popup && !popup.classList.contains('hidden')) {
+      if (!popup.contains(e.target) && !btn?.contains(e.target)) {
+        closeSettingsMenu();
+      }
+    }
+  });
+
   // STT Engine Selector
   if (selectSttEngine) {
     selectSttEngine.addEventListener('change', (e) => {
@@ -172,6 +203,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+function toggleSettingsMenu(event) {
+  if (event) {
+    event.stopPropagation();
+  }
+  const popup = document.getElementById('settingsMenuPopup');
+  if (popup) {
+    popup.classList.toggle('hidden');
+  }
+}
+
+function closeSettingsMenu() {
+  const popup = document.getElementById('settingsMenuPopup');
+  if (popup) {
+    popup.classList.add('hidden');
+  }
+}
 
 async function checkServerHealth() {
   try {
@@ -257,6 +305,7 @@ function initWebSocket() {
         } else if (textToInsert) {
           insertTextAtCursor(textToInsert);
           ghostText.textContent = textToInsert;
+          renderLiveFeedback(textToInsert, 0.95, false);
         }
 
         // Render live correction badges in feed
@@ -405,9 +454,11 @@ function initSpeechRecognition() {
 
     if (interimText) {
       ghostText.textContent = interimText;
+      renderLiveFeedback(interimText, 0.85, true);
     }
 
     if (finalChunk.trim()) {
+      renderLiveFeedback(finalChunk.trim(), 0.95, false);
       const payload = {
         type: 'text_segment',
         text: finalChunk.trim(),
@@ -455,11 +506,11 @@ function toggleDictation() {
 
 function startDictation() {
   state.isRecording = true;
-  btnMicToggle.className = 'w-20 h-20 rounded-full bg-gradient-to-tr from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white flex items-center justify-center shadow-lg shadow-rose-600/30 transition-all transform active:scale-95 group relative';
+  btnMicToggle.className = 'w-24 h-24 rounded-full bg-gradient-to-tr from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white flex items-center justify-center shadow-xl shadow-rose-600/30 transition-all transform active:scale-95 group relative border-2 border-rose-400/40';
   micPulseRing.classList.remove('opacity-0');
   micPulseRing.classList.add('animate-ping');
   micStatusDot.className = 'w-2 h-2 rounded-full bg-rose-500 animate-pulse';
-  micStatusText.textContent = 'Recording (Live)...';
+  micStatusText.textContent = 'Recording (Spacebar / Alt+R)...';
   micStatusText.className = 'text-xs font-semibold uppercase tracking-wider text-rose-400';
 
   // Start timer
@@ -482,11 +533,11 @@ function startDictation() {
 
 function stopDictation() {
   state.isRecording = false;
-  btnMicToggle.className = 'w-20 h-20 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white flex items-center justify-center shadow-lg shadow-cyan-500/25 transition-all transform active:scale-95 group relative';
+  btnMicToggle.className = 'w-24 h-24 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white flex items-center justify-center shadow-xl shadow-cyan-500/25 transition-all transform active:scale-95 group relative border-2 border-cyan-400/30';
   micPulseRing.classList.add('opacity-0');
   micPulseRing.classList.remove('animate-ping');
   micStatusDot.className = 'w-2 h-2 rounded-full bg-slate-500';
-  micStatusText.textContent = 'Click to Dictate';
+  micStatusText.textContent = 'Click to Dictate (Spacebar / Alt+R)';
   micStatusText.className = 'text-xs font-semibold uppercase tracking-wider text-slate-300';
 
   clearInterval(state.recTimerInterval);
@@ -1036,8 +1087,88 @@ function recordMisheardSample() {
 }
 
 // ==========================================
-// LIVE CORRECTION LOG FEED & QUICK RULES
+// LIVE CORRECTION LOG FEED, REAL-TIME HIGHLIGHTS & QUICK RULES
 // ==========================================
+
+const MEDICAL_HOTWORDS_LIST = [
+  'pleural effusion', 'effusion', 'calculus', 'calculi', 'cholelithiasis', 'cholecystitis',
+  'hydronephrosis', 'hydroureter', 'nephrolithiasis', 'steatosis', 'fatty infiltration',
+  'cirrhosis', 'splenomegaly', 'hepatomegaly', 'lymphadenopathy', 'mass', 'nodule', 'nodules',
+  'lesion', 'lesions', 'consolidation', 'ground glass', 'atelectasis', 'pneumothorax',
+  'hyperdense', 'hypodense', 'hyperintense', 'hypointense', 'isointense',
+  'hypoechoic', 'hyperechoic', 'anechoic', 'echogenic', 'acoustic shadowing',
+  'anteverted', 'retroverted', 'endometrium', 'myometrium', 'parenchyma', 'cortex', 'medulla',
+  'infarct', 'infarction', 'ischemia', 'hemorrhage', 'hematoma', 'edema', 'stenosis', 'aneurysm',
+  'metastasis', 'metastases', 'metastatic', 'malignant', 'benign',
+  'suv', 'suvmax', 'fdg', 'psma', 'tracer', 'uptake', 'hypermetabolic', 'hypometabolic',
+  'bone scan', 'osteoblastic', 'osteolytic', 'sclerotic', 'lucent',
+  'ti-rads', 'bi-rads', 'pi-rads', 'recist', 'fleischner', 'deauville',
+  'liver', 'gallbladder', 'gall bladder', 'spleen', 'pancreas', 'kidneys', 'kidney', 'urinary bladder',
+  'prostate', 'uterus', 'ovaries', 'ovary', 'appendix', 'thecal sac', 'conus medullaris', 'cauda equina'
+];
+
+const SOUND_ALIKE_TERMS = [
+  'plural fusion', 'hyper dense', 'hypo dense', 'hydronaphrosis', 'anti verted', 'anti-verted',
+  'retro verted', 'retro-verted', 'chole cystitis', 'thecal sack', 'ligamentum flavour',
+  'basal sisters', 'conus medullary', 'cauda a queen', 'mesenteric lymph adenopathy',
+  'poly cystic ovaries', 'portal wane', 'inferior wine cava', 'blood pool', 'thyro toxicosis',
+  'hypo echoic', 'hyper echoic', 'gall stones', 'gall stone'
+];
+
+function renderLiveFeedback(text, confidence = 0.9, isInterim = false) {
+  const container = document.getElementById('liveFeedbackText');
+  const confIndicator = document.getElementById('sttConfidenceIndicator');
+  if (!container || !text) return;
+
+  if (confIndicator) {
+    if (isInterim) {
+      confIndicator.className = 'text-[10px] font-mono text-cyan-400';
+      confIndicator.textContent = 'Listening...';
+    } else if (confidence < 0.85) {
+      confIndicator.className = 'text-[10px] font-mono text-amber-400 font-semibold';
+      confIndicator.textContent = `⚠️ Low Conf: ${Math.round(confidence * 100)}%`;
+    } else {
+      confIndicator.className = 'text-[10px] font-mono text-emerald-400 font-semibold';
+      confIndicator.textContent = `✓ High Conf: ${Math.round(confidence * 100)}%`;
+    }
+  }
+
+  let formatted = escapeHtml(text);
+
+  // 1. Underline sound-alikes / misheard patterns with dotted line for 1-click training
+  SOUND_ALIKE_TERMS.forEach(pattern => {
+    const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b(${escapedPattern})\\b`, 'gi');
+    formatted = formatted.replace(regex, (match) => {
+      const cleanWord = match.replace(/'/g, "\\'");
+      return `<span class="border-b-2 border-dotted border-amber-400 text-amber-300 font-semibold cursor-pointer hover:bg-amber-950/80 px-1 py-0.5 rounded transition" onclick="prefillTrainWord('${cleanWord}')" title="Misheard sound-alike: Click to train in phonetic dictionary">${match}</span>`;
+    });
+  });
+
+  // 2. Highlight known medical terms in light blue
+  MEDICAL_HOTWORDS_LIST.forEach(term => {
+    const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(?<!<[^>]*)\\b(${escapedTerm})\\b(?![^<]*>)`, 'gi');
+    formatted = formatted.replace(regex, (match) => {
+      return `<span class="text-cyan-300 font-semibold bg-cyan-950/80 border border-cyan-800/80 px-1.5 py-0.5 rounded shadow-sm">${match}</span>`;
+    });
+  });
+
+  container.innerHTML = formatted;
+}
+
+function prefillTrainWord(word) {
+  if (!word) return;
+  const patInput = document.getElementById('quickRulePattern');
+  const repInput = document.getElementById('quickRuleReplacement');
+  if (patInput) {
+    patInput.value = word.trim();
+    if (repInput) {
+      repInput.focus();
+    }
+    showToast(`Misheard word "${word}" prefilled! Enter correct spelling and save.`);
+  }
+}
 
 function renderCorrectionsInFeed(corrections) {
   const feed = document.getElementById('correctionLogFeed');
@@ -1056,9 +1187,13 @@ function renderCorrectionsInFeed(corrections) {
 
     const item = document.createElement('div');
     item.className = 'py-1 px-1.5 rounded bg-pacs-900 border border-cyan-900/60 flex items-center justify-between text-[10px] animate-pulse';
+    const escapedFrom = escapeHtml(fromTerm).replace(/'/g, "\\'");
     item.innerHTML = `
-      <span>⚡ <span class="text-rose-400 line-through">${escapeHtml(fromTerm)}</span> → <strong class="text-emerald-400">${escapeHtml(toTerm)}</strong></span>
-      <span class="text-[8px] text-cyan-400/80 font-mono">${escapeHtml(stage)}</span>
+      <span class="truncate mr-1">⚡ <span class="text-rose-400 line-through cursor-pointer hover:underline" onclick="prefillTrainWord('${escapedFrom}')" title="Click to train this misheard word">${escapeHtml(fromTerm)}</span> → <strong class="text-emerald-400">${escapeHtml(toTerm)}</strong></span>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button onclick="prefillTrainWord('${escapedFrom}')" class="text-[9px] px-1 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 hover:bg-amber-900 transition" title="Train in dictionary">➕ Train</button>
+        <span class="text-[8px] text-cyan-400/80 font-mono">${escapeHtml(stage)}</span>
+      </div>
     `;
     feed.insertBefore(item, feed.firstChild);
 

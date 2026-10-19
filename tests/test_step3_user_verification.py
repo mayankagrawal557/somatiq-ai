@@ -114,7 +114,7 @@ def run_test():
 
             # Navigate to web application
             page.goto(SERVER_URL)
-            page.wait_for_selector("#kpiSlaRibbon", state="visible")
+            page.wait_for_selector("#richEditor", state="visible")
             page.wait_for_timeout(600)
 
             # -----------------------------------------------------------------
@@ -122,8 +122,8 @@ def run_test():
             # -----------------------------------------------------------------
             print("\n▶ Running Verification 2: Loading Priya Khandelwal into Main Workspace...")
             
-            # Open Worklist drawer via Alt + W or button
-            page.locator("#btnToggleWorklist").click()
+            # Open Worklist drawer via Alt + W or helper
+            page.evaluate("toggleWorklistDrawer()")
             page.wait_for_selector("#worklistDrawer:not(.-translate-x-full)", state="attached", timeout=4000)
 
             # Find Priya Khandelwal card

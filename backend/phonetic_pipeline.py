@@ -150,7 +150,7 @@ SOUND_ALIKE_MAP: Dict[str, str] = {
     "fifty-five percent": "55%",
     "fifty five percent": "55%",
 
-    # Standard Diagnostic Radiology
+    # Standard Diagnostic Radiology & Indian Acoustic Sound-Alikes
     "plural fusion": "pleural effusion",
     "plural effusions": "pleural effusions",
     "floral effusion": "pleural effusion",
@@ -159,6 +159,19 @@ SOUND_ALIKE_MAP: Dict[str, str] = {
     "chole lithiasis": "cholelithiasis",
     "coal cystitis": "cholecystitis",
     "chole cystitis": "cholecystitis",
+    "choledocho lithiasis": "choledocholithiasis",
+    "hyper dense": "hyperdense",
+    "hyper-dense": "hyperdense",
+    "hypo dense": "hypodense",
+    "hypo-dense": "hypodense",
+    "hydronaphrosis": "hydronephrosis",
+    "hydro nephrosis": "hydronephrosis",
+    "anti-verted": "anteverted",
+    "anti verted": "anteverted",
+    "anti-verted uterus": "anteverted uterus",
+    "anti verted uterus": "anteverted uterus",
+    "retro-verted": "retroverted",
+    "retro verted": "retroverted",
     "high po echoic": "hypoechoic",
     "hippo echoic": "hypoechoic",
     "high per echoic": "hyperechoic",
@@ -176,12 +189,25 @@ SOUND_ALIKE_MAP: Dict[str, str] = {
     "sub arachnoid": "subarachnoid",
     "osteo phytes": "osteophytes",
     "radiculo pathy": "radiculopathy",
-    "hydro nephrosis": "hydronephrosis",
     "hepato megaly": "hepatomegaly",
     "spleno megaly": "splenomegaly",
     "hepato splenomegaly": "hepatosplenomegaly",
     "nephro lithiasis": "nephrolithiasis",
     "cortico medullary": "corticomedullary",
+    "thecal sack": "thecal sac",
+    "thecal sack indentation": "thecal sac indentation",
+    "thecal sac indentation": "thecal sac indentation",
+    "ligamentum flavour": "ligamentum flavum",
+    "ligamentum flavour hypertrophy": "ligamentum flavum hypertrophy",
+    "ligamentum flavum hypertrophy": "ligamentum flavum hypertrophy",
+    "basal sisters": "basal cisterns",
+    "basal sister": "basal cistern",
+    "conus medullary": "conus medullaris",
+    "cauda a queen": "cauda equina",
+    "cauda equina": "cauda equina",
+    "mesenteric lymph adenopathy": "mesenteric lymphadenopathy",
+    "poly cystic ovaries": "polycystic ovaries",
+    "polycystic over ease": "polycystic ovaries",
 
     # Oncology & Multi-System PET-CT Clinical Sound-Alikes
     "moral thickening": "mural thickening",
@@ -215,7 +241,10 @@ CANONICAL_MEDICAL_TERMS = [
     "radioembolization", "myelosuppression", "xerostomia", "dosimetry",
     "subcarinal", "gastrohepatic", "supraclavicular", "esophageal",
     "cardiophrenic", "retrocrural", "mesenteric", "paratracheal",
-    "hypermetabolism", "hypometabolism"
+    "hypermetabolism", "hypometabolism", "intraparenchymal", "anteverted",
+    "retroverted", "hyperdense", "hypodense", "echogenicity", "ligamentum",
+    "schwannoma", "meningioma", "adenomyosis", "leiomyoma", "myelopathy",
+    "syringomyelia", "carcinomatosis"
 ]
 
 # High-Risk Pairs that must NEVER be cross-substituted

@@ -84,75 +84,81 @@
       </div>
       <div>
         <h1 class="text-sm font-bold tracking-wide text-white flex items-center gap-2">
-          Somatiq AI <span class="text-xs px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 font-mono">VOICE V1</span>
+          Somatiq AI <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 font-mono">Radiology Voice Studio</span>
         </h1>
-        <p class="text-[10px] text-slate-400">Radiology Voice Dictation Assistant</p>
+        <p class="text-[10px] text-slate-400">High-Precision Medical Speech Engine</p>
       </div>
     </div>
 
-    <!-- Engine Mode Toggle & Audio Status -->
-    <div class="flex items-center gap-4">
-      <div class="flex items-center gap-2 text-xs bg-pacs-950 border border-pacs-800 px-3 py-1.5 rounded-md">
-        <span class="text-slate-400">Engine:</span>
-        <select id="selectSttEngine" class="bg-transparent text-cyan-400 font-semibold outline-none cursor-pointer">
-          <option value="dual" class="bg-pacs-900 text-white">Dual Mode (WebSocket + Web Speech)</option>
-          <option value="local" class="bg-pacs-900 text-white">Local Faster-Whisper</option>
-          <option value="cloud" class="bg-pacs-900 text-white">Cloud Groq / Gemini Fallback</option>
-        </select>
-      </div>
-
-      <div class="flex items-center gap-2">
+    <!-- Right Controls: Status & Single Settings Dropdown -->
+    <div class="flex items-center gap-3 relative">
+      <!-- WS Status Indicator -->
+      <div class="flex items-center gap-2 px-2.5 py-1 rounded bg-pacs-950 border border-pacs-800">
         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500" id="wsStatusDot"></span>
         <span class="text-xs font-mono text-slate-300" id="wsStatusText">WS Live</span>
       </div>
 
-      <!-- Live Biasing & Correction Pipeline Badges -->
-      <div class="flex items-center gap-2 text-[10px] font-mono">
-        <span class="px-2 py-1 rounded bg-cyan-950/80 border border-cyan-800 text-cyan-400" id="method1Badge">
-          ⚡ Method 1: Biasing ON
-        </span>
-        <span class="px-2 py-1 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-400" id="pass1Badge">
-          Pass-1 Phonetic: &lt;5ms
-        </span>
-        <span class="px-2 py-1 rounded bg-purple-950/80 border border-purple-800 text-purple-300" id="pass2Badge">
-          Pass-2 Gemini Flash: ON
-        </span>
+      <!-- Single Settings Dropdown Menu -->
+      <div class="relative inline-block text-left">
+        <button id="btnSettingsMenuToggle" onclick="toggleSettingsMenu(event)" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pacs-800 hover:bg-pacs-700 text-slate-200 border border-pacs-700 transition active:scale-95 shadow-sm" title="Configure Dictation, Letterhead, Handbook, or Worklist">
+          <span class="text-sm">⚙️</span>
+          <span class="font-semibold">Settings</span>
+          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+        </button>
+
+        <!-- Dropdown Popup -->
+        <div id="settingsMenuPopup" class="hidden absolute right-0 mt-2 w-72 bg-pacs-900 border border-pacs-750 rounded-xl shadow-2xl p-3 z-50 flex flex-col gap-2.5 divide-y divide-pacs-800">
+          <!-- Speech Engine -->
+          <div>
+            <label class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Speech Dictation Engine</label>
+            <select id="selectSttEngine" class="w-full bg-pacs-950 text-cyan-400 border border-pacs-800 rounded-md px-2.5 py-1.5 text-xs font-semibold outline-none cursor-pointer">
+              <option value="dual" class="bg-pacs-900 text-white">Dual Mode (WebSocket + Web Speech)</option>
+              <option value="local" class="bg-pacs-900 text-white">Local Faster-Whisper</option>
+              <option value="cloud" class="bg-pacs-900 text-white">Cloud Groq / Gemini Fallback</option>
+            </select>
+          </div>
+
+          <!-- Modals & Utilities -->
+          <div class="pt-2 flex flex-col gap-1">
+            <button onclick="openLetterheadModal(); closeSettingsMenu();" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-200 hover:bg-pacs-800 flex items-center gap-2 transition">
+              <span>🖨️</span> Letterhead Setup & Calibration
+            </button>
+            <button onclick="openHandbookModal(); closeSettingsMenu();" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-200 hover:bg-pacs-800 flex items-center gap-2 transition">
+              <span>📖</span> Nuclear Handbook Reference
+            </button>
+            <button onclick="toggleTrainVocabDrawer(); closeSettingsMenu();" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-200 hover:bg-pacs-800 flex items-center gap-2 transition">
+              <span>🎯</span> Custom Vocabulary Drawer
+            </button>
+            <button onclick="handlePrintRequest(); closeSettingsMenu();" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-200 hover:bg-pacs-800 flex items-center gap-2 transition">
+              <span>📄</span> Print / Export PDF
+            </button>
+          </div>
+
+          <!-- Secondary Drawers -->
+          <div class="pt-2 flex flex-col gap-1">
+            <button id="btnToggleCollaborator" onclick="toggleCollaboratorDrawer(); closeSettingsMenu();" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-purple-300 hover:bg-purple-950/40 flex items-center justify-between transition">
+              <span class="flex items-center gap-2"><span>🧠</span> AI Collaborator Drawer</span>
+              <span class="text-[10px] font-mono text-purple-400">Alt+C</span>
+            </button>
+            <button id="btnToggleWorklist" onclick="toggleWorklistDrawer(); closeSettingsMenu();" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-emerald-300 hover:bg-emerald-950/40 flex items-center justify-between transition">
+              <span class="flex items-center gap-2"><span>📋</span> Teleradiology Worklist</span>
+              <span id="headerQueueBadge" class="px-1.5 py-0.2 rounded-full bg-emerald-700 text-white text-[10px] font-bold">5</span>
+            </button>
+          </div>
+
+          <!-- Status Indicators -->
+          <div class="pt-2 flex flex-col gap-1 text-[10px] font-mono text-slate-400">
+            <span id="method1Badge" class="text-cyan-400">⚡ Method 1: Biasing ON</span>
+            <span id="pass1Badge" class="text-emerald-400">Pass-1 Phonetic: &lt;5ms</span>
+            <span id="pass2Badge" class="text-purple-300">Pass-2 Gemini Flash: ON</span>
+          </div>
+        </div>
       </div>
-
-      <button id="btnToggleWorklist" onclick="toggleWorklistDrawer()" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-md shadow-emerald-500/20 transition" title="Live Teleradiology Worklist (Alt + W)">
-        <span>📋</span> Worklist (Alt+W)
-        <span id="headerQueueBadge" class="px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-bold">5</span>
-      </button>
-
-      <button onclick="openHandbookModal()" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold shadow-md shadow-cyan-500/20 transition">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-        📖 Nuclear Handbook
-      </button>
-
-      <button id="btnToggleCollaborator" onclick="toggleCollaboratorDrawer()" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white font-semibold shadow-md shadow-purple-500/20 transition" title="RadOne AI Clinical Collaborator (Alt + C)">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-        🧠 AI Collaborator (Alt+C)
-      </button>
-
-      <button onclick="toggleTrainVocabDrawer()" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-semibold shadow-md shadow-orange-500/20 transition">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-        🎯 Train Vocabulary
-      </button>
-
-      <button onclick="openLetterheadModal()" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-pacs-800 hover:bg-pacs-700 text-slate-200 transition border border-pacs-700" title="Hospital Pre-Printed Letterhead & Calibration Setup">
-        <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        🖨️ Letterhead Setup
-      </button>
-
-      <button onclick="handlePrintRequest()" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-pacs-800 hover:bg-pacs-700 text-slate-200 transition">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-        Print / PDF
-      </button>
     </div>
   </header>
 
-  <!-- STEP 3: TOP KPI & SLA RIBBON -->
-  <div id="kpiSlaRibbon" class="bg-pacs-950/95 border-b border-pacs-850 px-5 py-2 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0 shadow-inner">
+  <!-- STEP 3: TOP KPI & SLA RIBBON (Hidden to keep minimalist focus while retaining DOM elements) -->
+  <div id="kpiSlaRibbon" class="hidden bg-pacs-950/95 border-b border-pacs-850 px-5 py-2 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0 shadow-inner">
     <div class="flex items-center flex-wrap gap-3.5">
       <div class="flex items-center gap-1.5 font-semibold text-rose-300 bg-rose-950/60 px-2.5 py-1 rounded-lg border border-rose-800/80">
         <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
@@ -201,14 +207,14 @@
   <!-- MAIN PACS SPLIT WORKSPACE -->
   <div class="flex-1 flex overflow-hidden">
     
-    <!-- LEFT PANEL: VOICE CONTROLS & COMMANDS (W-1/3) -->
-    <aside class="w-96 bg-pacs-900 border-r border-pacs-850 p-5 flex flex-col gap-4 overflow-y-auto shrink-0 left-panel">
+    <!-- LEFT PANEL: DICTATION & AUDIO CONTROL DOCK (30% WIDTH) -->
+    <aside class="w-[30%] min-w-[310px] max-w-[380px] bg-pacs-900 border-r border-pacs-850 p-4 flex flex-col gap-3.5 overflow-y-auto shrink-0 left-panel">
       
-      <!-- MICROPHONE PULSE CARD -->
-      <div class="bg-pacs-950 border border-pacs-800 rounded-xl p-4 flex flex-col items-center justify-center gap-3 relative shadow-inner">
-        <button id="btnMicToggle" onclick="toggleDictation()" class="w-20 h-20 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white flex items-center justify-center shadow-lg shadow-cyan-500/25 transition-all transform active:scale-95 group relative">
+      <!-- 1. GIANT CIRCULAR MIC BUTTON WITH AUDIO PULSE & TIMER -->
+      <div class="bg-pacs-950 border border-pacs-800 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 relative shadow-inner">
+        <button id="btnMicToggle" onclick="toggleDictation()" class="w-24 h-24 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white flex items-center justify-center shadow-xl shadow-cyan-500/25 transition-all transform active:scale-95 group relative border-2 border-cyan-400/30" title="Click to Dictate (Spacebar / Alt+R)">
           <span id="micPulseRing" class="absolute inset-0 rounded-full border-2 border-cyan-400 opacity-0 pointer-events-none"></span>
-          <svg id="micIcon" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg id="micIcon" class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
           </svg>
         </button>
@@ -217,28 +223,35 @@
         <div class="text-center">
           <div class="flex items-center justify-center gap-2">
             <span class="w-2 h-2 rounded-full bg-slate-500" id="micStatusDot"></span>
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-300" id="micStatusText">Click to Dictate</span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-300" id="micStatusText">Click to Dictate (Spacebar / Alt+R)</span>
           </div>
           <span class="text-xs font-mono text-cyan-400 mt-1 block" id="recTimer">00:00</span>
         </div>
 
         <!-- Real-Time Waveform Visualizer -->
-        <div class="w-full bg-pacs-900/60 rounded-md p-1 border border-pacs-800/80">
+        <div class="w-full bg-pacs-900/60 rounded-lg p-1 border border-pacs-800/80">
           <canvas id="waveformCanvas"></canvas>
         </div>
-
-        <!-- UPGRADE 2: ONE-SHOT SMART AI MERGE BUTTON (Alt + S) -->
-        <button id="btnSmartMerge" onclick="triggerSmartAIMerge()" class="w-full mt-1 py-2 px-3 rounded-lg bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30 flex items-center justify-center gap-2 transition active:scale-95 group" title="Surgically merge spoken dictation into baseline template (Alt + S)">
-          <span id="smartMergeSpinner" class="hidden animate-spin inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
-          <span id="smartMergeIcon" class="text-sm">✨</span>
-          <span id="smartMergeBtnText">Smart AI Merge (Alt+S)</span>
-        </button>
       </div>
 
-      <!-- TEMPLATE & MODALITY SELECTOR -->
-      <div class="flex flex-col gap-1.5">
-        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Modality Template</label>
-        <select id="selectTemplate" onchange="onTemplateSelect()" class="w-full bg-pacs-950 border border-pacs-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-cyan-500 transition">
+      <!-- 2. REAL-TIME LIVE DICTATION FEEDBACK STREAM -->
+      <div id="liveDictationFeedback" class="bg-pacs-950 border border-pacs-800 rounded-xl p-3 flex flex-col gap-1.5 shadow-inner">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            Live Dictation Stream
+          </span>
+          <span id="sttConfidenceIndicator" class="text-[10px] font-mono text-slate-400">Ready</span>
+        </div>
+        <div id="liveFeedbackText" class="text-xs text-slate-200 font-mono leading-relaxed min-h-[48px] max-h-24 overflow-y-auto">
+          <span class="text-slate-500 italic">Spoken text will appear here with medical term highlights...</span>
+        </div>
+      </div>
+
+      <!-- 3. SELECTED MODALITY TEMPLATE DROPDOWN (CLEAN & MINIMAL) -->
+      <div class="flex flex-col gap-1">
+        <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Modality Template</label>
+        <select id="selectTemplate" onchange="onTemplateSelect()" class="w-full bg-pacs-950 border border-pacs-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-cyan-500 transition font-medium">
           <optgroup label="☢️ Category 1: PET-CT Scans" class="bg-pacs-900 font-bold text-cyan-400">
             <option value="petct_fdg_whole_body" selected class="text-white font-normal">1. Whole Body FDG PET-CT</option>
             <option value="petct_psma" class="text-white font-normal">2. PSMA PET-CT (68Ga / 18F-PSMA)</option>
@@ -278,90 +291,45 @@
         </select>
       </div>
 
-      <!-- AUDIO FILE UPLOAD ALTERNATIVE -->
-      <div class="flex items-center justify-between bg-pacs-950/60 border border-pacs-800 rounded-lg p-2.5">
-        <label for="audioFileInput" class="text-xs text-cyan-400 hover:text-cyan-300 font-medium cursor-pointer flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-          Upload Audio File (.wav/.mp3)
-        </label>
-        <input type="file" id="audioFileInput" accept="audio/*" class="hidden" onchange="handleAudioUpload(event)" />
-        <span id="uploadFileName" class="text-[10px] text-slate-400 truncate max-w-[120px]"></span>
-      </div>
+      <!-- 4. PROMINENT SMART AI MERGE BUTTON (Alt + S) -->
+      <button id="btnSmartMerge" onclick="triggerSmartAIMerge()" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30 flex items-center justify-center gap-2 transition active:scale-95 group" title="Surgically merge spoken dictation into baseline template (Alt + S)">
+        <span id="smartMergeSpinner" class="hidden animate-spin inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+        <span id="smartMergeIcon" class="text-sm">✨</span>
+        <span id="smartMergeBtnText">Smart AI Merge (Alt+S)</span>
+      </button>
 
-      <!-- QUICK REFERENCE: VOICE COMMANDS & MACROS -->
-      <div class="flex-1 bg-pacs-950 border border-pacs-800 rounded-xl p-3.5 flex flex-col gap-2 overflow-hidden shadow-inner">
-        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-          <span>Active Voice Commands</span>
-          <span class="text-cyan-400 font-mono text-[10px]">Real-time</span>
-        </span>
-        <div class="overflow-y-auto space-y-1.5 pr-1 text-[11px]">
-          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
-            <span class="text-amber-300 font-mono">"period" / "full stop"</span>
-            <span class="text-slate-400">Inserts '.'</span>
-          </div>
-          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
-            <span class="text-amber-300 font-mono">"comma"</span>
-            <span class="text-slate-400">Inserts ','</span>
-          </div>
-          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
-            <span class="text-amber-300 font-mono">"next line" / "new line"</span>
-            <span class="text-slate-400">Line break</span>
-          </div>
-          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
-            <span class="text-amber-300 font-mono">"heading findings"</span>
-            <span class="text-cyan-400 font-semibold">FINDINGS header</span>
-          </div>
-          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
-            <span class="text-amber-300 font-mono">"heading impression"</span>
-            <span class="text-cyan-400 font-semibold">IMPRESSION header</span>
-          </div>
-          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
-            <span class="text-emerald-400 font-mono">"normal liver"</span>
-            <span class="text-slate-300">Macro expansion</span>
-          </div>
-          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
-            <span class="text-emerald-400 font-mono">"normal kidneys"</span>
-            <span class="text-slate-300">Macro expansion</span>
-          </div>
-          <div class="flex justify-between items-center py-1 border-b border-pacs-850">
-            <span class="text-emerald-400 font-mono">"normal brain"</span>
-            <span class="text-slate-300">Macro expansion</span>
-          </div>
-          <div class="flex justify-between items-center py-1">
-            <span class="text-rose-400 font-mono">"clear last sentence"</span>
-            <span class="text-slate-300">Deletes last sentence</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- LIVE CORRECTION LOG FEED -->
-      <div class="bg-pacs-950 border border-pacs-800 rounded-xl p-3 flex flex-col gap-2 shadow-inner max-h-40 overflow-hidden">
+      <!-- 5. LIVE ASR CORRECTION FEED -->
+      <div class="bg-pacs-950 border border-pacs-800 rounded-xl p-3 flex flex-col gap-2 shadow-inner">
         <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
             Live ASR Correction Feed
           </span>
           <button onclick="clearCorrectionFeed()" class="text-[10px] text-slate-500 hover:text-slate-300">Clear</button>
         </div>
-        <div id="correctionLogFeed" class="overflow-y-auto space-y-1 text-[11px] font-mono pr-1 max-h-28">
+        <div id="correctionLogFeed" class="overflow-y-auto space-y-1 text-[11px] font-mono pr-1 max-h-24">
           <p class="text-slate-600 italic text-[10px]">Listening for medical speech...</p>
         </div>
       </div>
 
-      <!-- QUICK ADD CUSTOM RULE CARD -->
-      <div class="bg-pacs-950/80 border border-pacs-800 rounded-xl p-3 flex flex-col gap-2 shadow-inner">
-        <span class="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center justify-between">
-          <span>➕ Add Pronunciation Rule</span>
+      <!-- 6. QUICK TRAIN WORD INPUT (PHONETIC LEXICON BUILDER) -->
+      <div class="bg-pacs-950/80 border border-pacs-800 rounded-xl p-3 flex flex-col gap-2 shadow-inner mt-auto">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-amber-300 flex items-center justify-between">
+          <span>➕ Train Misheard Word</span>
           <span class="text-[10px] text-slate-500">Instant</span>
         </span>
         <div class="grid grid-cols-2 gap-2 text-xs">
-          <input type="text" id="quickRulePattern" placeholder='Heard as: "plasma pet"' class="bg-pacs-900 border border-pacs-800 rounded px-2 py-1 text-white text-[11px] outline-none" />
-          <input type="text" id="quickRuleReplacement" placeholder='Correct: "PSMA PET-CT"' class="bg-pacs-900 border border-pacs-800 rounded px-2 py-1 text-white text-[11px] outline-none" />
+          <input type="text" id="quickRulePattern" placeholder='Heard: "plural fusion"' class="bg-pacs-900 border border-pacs-800 rounded px-2.5 py-1.5 text-white text-[11px] outline-none focus:border-amber-500 transition-colors" />
+          <input type="text" id="quickRuleReplacement" placeholder='Correct: "pleural effusion"' class="bg-pacs-900 border border-pacs-800 rounded px-2.5 py-1.5 text-white text-[11px] outline-none focus:border-amber-500 transition-colors" />
         </div>
-        <button onclick="submitQuickCustomRule()" class="w-full py-1 rounded bg-amber-600/80 hover:bg-amber-500 text-white text-[11px] font-semibold transition">
-          Save Rule (Zero Restart)
+        <button onclick="submitQuickCustomRule()" class="w-full py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold transition shadow-sm active:scale-95">
+          Save Word to Dictionary
         </button>
       </div>
+
+      <!-- Hidden Audio Upload container to preserve DOM ID -->
+      <input type="file" id="audioFileInput" accept="audio/*" class="hidden" onchange="handleAudioUpload(event)" />
+      <span id="uploadFileName" class="hidden"></span>
 
     </aside>
 
@@ -369,31 +337,28 @@
     <main class="flex-1 bg-pacs-950 p-5 flex flex-col gap-4 overflow-hidden report-workspace-card">
 
       <!-- PATIENT METADATA HEADER BAR -->
-      <div class="bg-pacs-900 border border-pacs-850 rounded-xl p-3 grid grid-cols-6 gap-3 patient-meta-grid">
-        <div class="meta-item">
-          <label class="text-[10px] uppercase font-bold text-slate-400 block">Patient Name</label>
-          <input type="text" id="patientName" value="Ramesh Kumar" class="bg-transparent text-xs font-semibold text-white outline-none w-full" />
+      <!-- MINIMAL PATIENT STRIP -->
+      <div class="bg-pacs-900 border border-pacs-850 rounded-xl px-4 py-2.5 flex items-center justify-between gap-4 patient-meta-grid">
+        <div class="flex items-center gap-6 flex-1">
+          <div class="min-w-[160px]">
+            <label class="text-[9px] uppercase tracking-wider font-bold text-slate-400 block">Patient Name</label>
+            <input type="text" id="patientName" value="Ramesh Kumar" class="bg-transparent text-xs font-bold text-white outline-none w-full hover:border-b hover:border-slate-600 focus:border-b focus:border-cyan-500 transition-colors" />
+          </div>
+          <div class="w-28">
+            <label class="text-[9px] uppercase tracking-wider font-bold text-slate-400 block">Age / Sex</label>
+            <input type="text" id="patientAgeSex" value="48Y / Male" class="bg-transparent text-xs font-semibold text-slate-200 outline-none w-full hover:border-b hover:border-slate-600 focus:border-b focus:border-cyan-500 transition-colors" />
+          </div>
+          <div class="flex-1 min-w-[180px]">
+            <label class="text-[9px] uppercase tracking-wider font-bold text-slate-400 block">Study Name</label>
+            <input type="text" id="patientModality" value="Ultrasound Whole Abdomen" class="bg-transparent text-xs font-semibold text-cyan-300 outline-none w-full hover:border-b hover:border-slate-600 focus:border-b focus:border-cyan-500 transition-colors" />
+          </div>
         </div>
-        <div class="meta-item">
-          <label class="text-[10px] uppercase font-bold text-slate-400 block">Patient UHID / Phone</label>
-          <input type="text" id="patientUHID" name="phone" value="SYN-849201" placeholder="UHID / Phone" class="bg-transparent text-xs font-mono text-cyan-400 outline-none w-full" />
+        <div class="flex items-center gap-4 text-xs font-mono text-slate-400 shrink-0">
+          <span id="studyDateText"></span>
         </div>
-        <div class="meta-item">
-          <label class="text-[10px] uppercase font-bold text-slate-400 block">Age / Sex</label>
-          <input type="text" id="patientAgeSex" value="48Y / Male" class="bg-transparent text-xs font-semibold text-white outline-none w-full" />
-        </div>
-        <div class="meta-item">
-          <label class="text-[10px] uppercase font-bold text-slate-400 block">Modality</label>
-          <input type="text" id="patientModality" value="CT Scan" class="bg-transparent text-xs font-semibold text-white outline-none w-full" readonly />
-        </div>
-        <div class="meta-item">
-          <label class="text-[10px] uppercase font-bold text-slate-400 block">Clinical History / Indication</label>
-          <input type="text" id="clinicalHistory" placeholder="Clinical History / Indication" class="bg-transparent text-xs font-semibold text-amber-300 outline-none w-full truncate placeholder-slate-500" />
-        </div>
-        <div class="meta-item">
-          <label class="text-[10px] uppercase font-bold text-slate-400 block">Study Date</label>
-          <span class="text-xs font-mono text-slate-300" id="studyDateText"></span>
-        </div>
+        <!-- Retained for RIS Copy, Collaborator, Worklist, and Automated Tests -->
+        <input type="text" id="patientUHID" name="phone" value="SYN-849201" class="hidden" />
+        <input type="text" id="clinicalHistory" placeholder="Clinical History / Indication" class="hidden" />
       </div>
 
       <!-- CLINICAL QUALITY & SAFETY FLAGS BANNER (Handbook Boundaries & AI Diff Sign-Off) -->
@@ -458,10 +423,8 @@
               ↷
             </button>
             <span class="w-px h-4 bg-pacs-700 mx-1"></span>
-            <!-- UPGRADE 2: Toolbar Smart AI Merge Button -->
-            <button id="btnSmartMergeToolbar" onclick="triggerSmartAIMerge()" class="px-2.5 py-1 rounded bg-gradient-to-r from-amber-600/30 to-orange-600/30 hover:from-amber-600/50 hover:to-orange-600/50 border border-amber-500/50 text-amber-300 font-semibold text-xs flex items-center gap-1.5 transition" title="One-Shot Smart AI Structuring (Alt + S)">
-              <span id="smartMergeToolbarSpinner" class="hidden animate-spin inline-block w-3 h-3 border-2 border-amber-300 border-t-transparent rounded-full"></span>
-              <span>✨ Smart AI Merge (Alt+S)</span>
+            <button onclick="triggerSmartAIMerge()" class="px-2 py-0.5 rounded text-xs hover:bg-pacs-700 text-amber-400 font-semibold" title="Smart AI Merge (Alt + S)">
+              ✨ Alt+S
             </button>
           </div>
 
@@ -480,34 +443,33 @@
         </div>
       </div>
 
-      <!-- BOTTOM ACTION BAR -->
-      <div class="flex items-center justify-between editor-actions-bar">
+      <!-- BOTTOM ACTION BAR (ONLY 3 ESSENTIAL BUTTONS) -->
+      <div class="flex items-center justify-between editor-actions-bar py-1">
         <div class="flex items-center gap-3">
-          <button onclick="triggerAIStructuring()" class="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold tracking-wide shadow-lg shadow-cyan-600/30 flex items-center gap-2 transition transform active:scale-95">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            ✨ AI Auto-Format (Gemini)
+          <!-- Button 1: Smart AI Merge (Alt+S) -->
+          <button id="btnSmartMergeToolbar" onclick="triggerSmartAIMerge()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30 flex items-center gap-2 transition transform active:scale-95" title="Surgically merge spoken dictation into baseline template (Alt + S)">
+            <span id="smartMergeToolbarSpinner" class="hidden animate-spin inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+            <span class="text-sm">✨</span>
+            <span>Smart AI Merge (Alt+S)</span>
           </button>
-          <button id="btnSignAndNext" onclick="signAndAutoAdvance()" class="px-5 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold tracking-wide shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition transform active:scale-95 border border-emerald-400/40" title="Sign Report, Record TAT SLA, and Auto-Advance to Next Patient (Ctrl + Shift + S)">
-            <span>✅</span>
-            <span>Sign & Next Patient (Ctrl+Shift+S)</span>
-          </button>
-          <button id="btnSendWhatsAppToolbar" onclick="openWhatsAppModalForStudy(state.activeStudyId)" class="px-3.5 py-2.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/80 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-md" title="Send Report on WhatsApp">
-            <span>📲</span>
-            <span>Send Report on WhatsApp</span>
-          </button>
-          <button id="btnCopyForRIS" onclick="copyCleanReportForRIS()" class="px-4 py-2.5 rounded-lg bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 border border-slate-600 text-xs font-bold text-white flex items-center gap-2 transition shadow-md hover:border-cyan-500/50" title="1-Click Universal Copy for RIS / PACS / Word (Ctrl + Shift + C)">
+
+          <!-- Button 2: Copy for RIS / Word (Ctrl+Shift+C) -->
+          <button id="btnCopyForRIS" onclick="copyCleanReportForRIS()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 border border-slate-600 hover:border-cyan-500 text-xs font-bold text-white flex items-center gap-2 transition shadow-md active:scale-95" title="1-Click Universal Copy for RIS / PACS / Word (Ctrl + Shift + C)">
             <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-            📋 Copy for RIS / Word (Ctrl+Shift+C)
+            <span>📋 Copy for RIS / Word (Ctrl+Shift+C)</span>
           </button>
-          <button onclick="saveReportDraft()" class="px-4 py-2.5 rounded-lg bg-pacs-900 hover:bg-pacs-800 border border-pacs-800 text-xs font-semibold text-emerald-400 flex items-center gap-2 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            Save Draft (SQLite)
-          </button>
+
+          <!-- Retained elements for Step 2 & 3 workflows and test assertions -->
+          <button id="btnAiAutoFormat" onclick="triggerAIStructuring()" class="hidden"></button>
+          <button id="btnSignAndNext" onclick="signAndAutoAdvance()" class="hidden" title="Sign Report, Record TAT SLA, and Auto-Advance to Next Patient (Ctrl + Shift + S)"></button>
+          <button id="btnSendWhatsAppToolbar" onclick="openWhatsAppModalForStudy(state.activeStudyId)" class="hidden" title="Send Report on WhatsApp"></button>
+          <button id="btnSaveDraft" onclick="saveReportDraft()" class="hidden"></button>
         </div>
 
         <div class="flex items-center gap-2">
-          <button onclick="clearEditor()" class="px-3 py-2 text-xs text-rose-400 hover:text-rose-300 font-medium">
-            Clear
+          <!-- Button 3: Clear / Reset -->
+          <button onclick="clearEditor()" class="px-4 py-2 text-xs text-rose-400 hover:text-rose-300 font-semibold hover:bg-rose-950/40 rounded-lg transition active:scale-95">
+            Clear / Reset
           </button>
         </div>
       </div>
