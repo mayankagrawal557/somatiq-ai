@@ -2177,7 +2177,7 @@ function renderWorklistCards() {
             <span>${isActive ? '● Active Study' : '📖 Load in Editor'}</span>
           </button>
           
-          <button onclick="openWhatsAppModalForStudy('${s.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 text-[11px] font-bold transition flex items-center gap-1" title="Send WhatsApp Notification">
+          <button onclick="openWhatsAppModalForStudy('${s.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 text-[11px] font-bold transition flex items-center gap-1" title="Send Report on WhatsApp" aria-label="Send Report on WhatsApp">
             <span>📲</span>
           </button>
 
@@ -2265,7 +2265,16 @@ async function loadWorklistStudy(studyId) {
 
   state.activeStudyId = study.id;
 
-  // 1. Populate Patient Metadata Header Inputs
+  // 1. Select matching template if available (loads starter layout)
+  if (selectTemplate && study.template_key) {
+    const exists = Array.from(selectTemplate.options).some(opt => opt.value === study.template_key);
+    if (exists) {
+      selectTemplate.value = study.template_key;
+      onTemplateSelect();
+    }
+  }
+
+  // 2. Populate Patient Metadata Header Inputs (preserves patient clinical history over template default)
   if (patientName) patientName.value = study.patient_name || '';
   if (patientAgeSex) patientAgeSex.value = study.age_gender || '';
   if (patientUHID) patientUHID.value = study.uhid || '';
@@ -2273,16 +2282,9 @@ async function loadWorklistStudy(studyId) {
 
   const clinicalHistInput = document.getElementById('clinicalHistory');
   const collabHistInput = document.getElementById('collabClinicalHistoryInput');
-  if (clinicalHistInput) clinicalHistInput.value = study.clinical_history || '';
-  if (collabHistInput) collabHistInput.value = study.clinical_history || '';
-
-  // 2. Select matching template if available
-  if (selectTemplate && study.template_key) {
-    const exists = Array.from(selectTemplate.options).some(opt => opt.value === study.template_key);
-    if (exists) {
-      selectTemplate.value = study.template_key;
-      onTemplateSelect();
-    }
+  if (study.clinical_history) {
+    if (clinicalHistInput) clinicalHistInput.value = study.clinical_history;
+    if (collabHistInput) collabHistInput.value = study.clinical_history;
   }
 
   // 3. Restore existing report HTML / Patient Summary if available
@@ -2542,7 +2544,8 @@ async function handleAddPatientSubmit(e) {
 // WhatsApp Notification Modal Controller
 // -------------------------------------------------------------
 function openWhatsAppModalForStudy(studyId) {
-  const study = state.worklistQueue.find(s => s.id === studyId);
+  const targetId = studyId || state.activeStudyId || (state.worklistQueue[0] ? state.worklistQueue[0].id : null);
+  const study = state.worklistQueue.find(s => s.id === targetId) || state.worklistQueue[0];
   if (!study) {
     showToast('Study not found for WhatsApp dispatch.');
     return;

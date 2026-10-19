@@ -11,9 +11,9 @@
     "study_name": "CT Brain Plain / Non-Contrast",
     "clinical_history": "Sudden onset left hemiparesis and slurred speech since 1 hour, rule out acute infarct/bleed.",
     "priority": "STAT",
-    "status": "DISPATCHED",
+    "status": "PENDING",
     "sla_target_minutes": 12,
-    "created_at": "2026-10-18T18:48:52.365549+00:00",
+    "created_at": "2026-10-19T06:56:23.727915+00:00",
     "signed_at": null,
     "final_report_html": null,
     "patient_summary": null
@@ -32,7 +32,7 @@
     "priority": "URGENT",
     "status": "PENDING",
     "sla_target_minutes": 15,
-    "created_at": "2026-10-18T18:42:52.365549+00:00",
+    "created_at": "2026-10-19T06:50:23.727915+00:00",
     "signed_at": null,
     "final_report_html": null,
     "patient_summary": null
@@ -51,7 +51,7 @@
     "priority": "URGENT",
     "status": "PENDING",
     "sla_target_minutes": 30,
-    "created_at": "2026-10-18T18:46:52.365549+00:00",
+    "created_at": "2026-10-19T06:54:23.727915+00:00",
     "signed_at": null,
     "final_report_html": null,
     "patient_summary": null
@@ -70,7 +70,7 @@
     "priority": "ROUTINE",
     "status": "PENDING",
     "sla_target_minutes": 30,
-    "created_at": "2026-10-18T18:38:52.365549+00:00",
+    "created_at": "2026-10-19T06:46:23.727915+00:00",
     "signed_at": null,
     "final_report_html": null,
     "patient_summary": null
@@ -89,7 +89,7 @@
     "priority": "ROUTINE",
     "status": "PENDING",
     "sla_target_minutes": 30,
-    "created_at": "2026-10-18T18:34:52.365549+00:00",
+    "created_at": "2026-10-19T06:42:23.727915+00:00",
     "signed_at": null,
     "final_report_html": null,
     "patient_summary": null
